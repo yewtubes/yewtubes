@@ -61,6 +61,64 @@
 									"styleType": "STYLE_HOME_FILTER"
 								},
 								"text": {
+									"simpleText": "Shorts"
+								},
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"sendPost": true,
+											"apiUrl": "/youtubei/v1/search"
+										}
+									},
+									"continuationCommand": {
+										"token": "{{CHIP_SHORTS}}",
+										"request": "CONTINUATION_REQUEST_TYPE_SEARCH",
+										"command": {
+											"showReloadUiCommand": {
+												"targetId": "search-feed"
+											}
+										}
+									}
+								},
+								"isSelected": "{{CHIP_SHORTS_SELECTED}}",
+								"location": "CHIP_LOCATION_SEARCH_RESULTS"
+							}
+						},
+						{
+							"chipCloudChipRenderer": {
+								"style": {
+									"styleType": "STYLE_HOME_FILTER"
+								},
+								"text": {
+									"simpleText": "Unwatched"
+								},
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"sendPost": true,
+											"apiUrl": "/youtubei/v1/search"
+										}
+									},
+									"continuationCommand": {
+										"token": "{{CHIP_UNWATCHED}}",
+										"request": "CONTINUATION_REQUEST_TYPE_SEARCH",
+										"command": {
+											"showReloadUiCommand": {
+												"targetId": "search-feed"
+											}
+										}
+									}
+								},
+								"isSelected": "{{CHIP_UNWATCHED_SELECTED}}",
+								"location": "CHIP_LOCATION_SEARCH_RESULTS"
+							}
+						},
+						{
+							"chipCloudChipRenderer": {
+								"style": {
+									"styleType": "STYLE_HOME_FILTER"
+								},
+								"text": {
 									"simpleText": "Videos"
 								},
 								"navigationEndpoint": {
@@ -110,6 +168,35 @@
 									}
 								},
 								"isSelected": "{{CHIP_RECENT_SELECTED}}",
+								"location": "CHIP_LOCATION_SEARCH_RESULTS"
+							}
+						},
+						{
+							"chipCloudChipRenderer": {
+								"style": {
+									"styleType": "STYLE_HOME_FILTER"
+								},
+								"text": {
+									"simpleText": "Live"
+								},
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"sendPost": true,
+											"apiUrl": "/youtubei/v1/search"
+										}
+									},
+									"continuationCommand": {
+										"token": "{{CHIP_LIVE}}",
+										"request": "CONTINUATION_REQUEST_TYPE_SEARCH",
+										"command": {
+											"showReloadUiCommand": {
+												"targetId": "search-feed"
+											}
+										}
+									}
+								},
+								"isSelected": "{{CHIP_LIVE_SELECTED}}",
 								"location": "CHIP_LOCATION_SEARCH_RESULTS"
 							}
 						}
@@ -206,6 +293,28 @@
 													{
 														"searchFilterRenderer": {
 															"label": {
+																"simpleText": "Shorts"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_TYPE_SHORTS}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_TYPE_SHORTS}}"
+																}
+															},
+															"tooltip": "Search for Shorts",
+															"status": "{{F_TYPE_SHORTS_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
 																"simpleText": "Channels"
 															},
 															"navigationEndpoint": {
@@ -245,6 +354,28 @@
 															},
 															"tooltip": "Search for Playlists",
 															"status": "{{F_TYPE_PLAYLIST_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "Movies"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_TYPE_MOVIE}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_TYPE_MOVIE}}"
+																}
+															},
+															"tooltip": "Search for Movies",
+															"status": "{{F_TYPE_MOVIE_STATUS}}"
 														}
 													}
 												]
@@ -417,6 +548,257 @@
 															},
 															"tooltip": "Search for This year",
 															"status": "{{F_DATE_YEAR_STATUS}}"
+														}
+													}
+												]
+											}
+										},
+										{
+											"searchFilterGroupRenderer": {
+												"title": {
+													"simpleText": "Features"
+												},
+												"filters": [
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "Live"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_LIVE}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_LIVE}}"
+																}
+															},
+															"tooltip": "Search for Live",
+															"status": "{{F_FEAT_LIVE_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "4K"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_4K}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_4K}}"
+																}
+															},
+															"tooltip": "Search for 4K",
+															"status": "{{F_FEAT_4K_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "HD"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_HD}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_HD}}"
+																}
+															},
+															"tooltip": "Search for HD",
+															"status": "{{F_FEAT_HD_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "Subtitles/CC"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_SUBTITLES}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_SUBTITLES}}"
+																}
+															},
+															"tooltip": "Search for Subtitles/CC",
+															"status": "{{F_FEAT_SUBTITLES_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "Creative Commons"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_CC}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_CC}}"
+																}
+															},
+															"tooltip": "Search for Creative Commons",
+															"status": "{{F_FEAT_CC_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "360°"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_360}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_360}}"
+																}
+															},
+															"tooltip": "Search for 360°",
+															"status": "{{F_FEAT_360_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "VR180"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_VR180}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_VR180}}"
+																}
+															},
+															"tooltip": "Search for VR180",
+															"status": "{{F_FEAT_VR180_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "3D"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_3D}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_3D}}"
+																}
+															},
+															"tooltip": "Search for 3D",
+															"status": "{{F_FEAT_3D_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "HDR"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_HDR}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_HDR}}"
+																}
+															},
+															"tooltip": "Search for HDR",
+															"status": "{{F_FEAT_HDR_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "Location"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_LOCATION}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_LOCATION}}"
+																}
+															},
+															"tooltip": "Search for Location",
+															"status": "{{F_FEAT_LOCATION_STATUS}}"
+														}
+													},
+													{
+														"searchFilterRenderer": {
+															"label": {
+																"simpleText": "Purchased"
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/results?search_query={{QUERY_URL}}&sp={{F_FEAT_PURCHASED}}",
+																		"webPageType": "WEB_PAGE_TYPE_SEARCH",
+																		"rootVe": 4724
+																	}
+																},
+																"searchEndpoint": {
+																	"query": "{{QUERY}}",
+																	"params": "{{F_FEAT_PURCHASED}}"
+																}
+															},
+															"tooltip": "Search for Purchased",
+															"status": "{{F_FEAT_PURCHASED_STATUS}}"
 														}
 													}
 												]

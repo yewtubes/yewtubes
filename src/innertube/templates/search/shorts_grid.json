@@ -1,0 +1,7 @@
+{
+	"gridShelfViewModel": {
+		"contents": "{{ITEMS}}",
+		"contentAspectRatio": "GRID_SHELF_CONTENT_ASPECT_RATIO_TWO_BY_THREE",
+		"showAllItems": true
+	}
+}

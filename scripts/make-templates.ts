@@ -791,18 +791,8 @@ function feeds() {
 	// /feed/subscriptions/shorts: the subscriptions' Shorts in a grid
 	const sp = pageOnly(pageVar(body("in-subs-shorts", /^001-/)));
 	// its items: the Shorts grid style (views over the thumbnail, no title row)
-	const gi = structuredClone(gridOf(sp).contents.find((it: any) => find(it, "shortsLockupViewModel")));
-	const glv = find(gi, "shortsLockupViewModel");
-	const gid: string = glv.onTap.innertubeCommand.reelWatchEndpoint.videoId;
-	const gviews: string = glv.overlayMetadata.secondaryText.content;
-	for (const k of ["inlinePopStateEntityKey", "indexInCollection"]) delete glv[k];
-	const greel = glv.onTap.innertubeCommand.reelWatchEndpoint;
-	for (const k of ["playerParams", "params", "sequenceParams", "loggingContext", "ustreamerConfig"]) delete greel[k];
-	greel.thumbnail.thumbnails = "{{REEL_THUMBS}}";
-	glv.thumbnailViewModel.thumbnailViewModel.image.sources = "{{THUMBS}}";
-	glv.accessibilityText = "{{A11Y}}";
-	const gitem = tokenize(strings(dropKey(clean(gi), "playerParams"), (x) => x.replace(/&pp=[^&"]*/, "")), [[gid, "VIDEO_ID"], [gviews, "VIEWS_SHORT"]], [[gid, "VIDEO_ID"]]);
-	save("item/shorts_lockup_grid", gitem, [gid]);
+	const gs = shortsGridItem(gridOf(sp).contents.find((it: any) => find(it, "shortsLockupViewModel")));
+	save("item/shorts_lockup_grid", gs.item, gs.samples);
 	gridOf(sp).contents = "{{ITEMS}}";
 	save("subscriptions/shorts_page", tokenize(sp, []));
 }
@@ -1067,14 +1057,16 @@ function watch() {
 
 // ======================================================================
 // search
-// chips and filters this instance can apply are kept (All, Videos, Recently
-// uploaded; type, duration, upload date, prioritize); Shorts, Live,
-// Unwatched and the Features group are left out, as are Shorts shelves
-const SEARCH_CHIPS: Record<string, string> = { All: "ALL", Videos: "VIDEOS", "Recently uploaded": "RECENT" };
+// every chip (All, Shorts, Unwatched, Videos, Recently uploaded, Live) and
+// every filter of the Filters dialog, each carrying the instance's own
+// token; Shorts come in YouTube's grid shelf
+const SEARCH_CHIPS: Record<string, string> = { All: "ALL", Shorts: "SHORTS", Unwatched: "UNWATCHED", Videos: "VIDEOS", "Recently uploaded": "RECENT", Live: "LIVE" };
 const SEARCH_FILTERS: Record<string, string> = {
 	Videos: "TYPE_VIDEO",
+	Shorts: "TYPE_SHORTS",
 	Channels: "TYPE_CHANNEL",
 	Playlists: "TYPE_PLAYLIST",
+	Movies: "TYPE_MOVIE",
 	"Under 3 minutes": "DUR_SHORT",
 	"3 - 20 minutes": "DUR_MEDIUM",
 	"Over 20 minutes": "DUR_LONG",
@@ -1082,9 +1074,39 @@ const SEARCH_FILTERS: Record<string, string> = {
 	"This week": "DATE_WEEK",
 	"This month": "DATE_MONTH",
 	"This year": "DATE_YEAR",
+	Live: "FEAT_LIVE",
+	"4K": "FEAT_4K",
+	HD: "FEAT_HD",
+	"Subtitles/CC": "FEAT_SUBTITLES",
+	"Creative Commons": "FEAT_CC",
+	"360°": "FEAT_360",
+	VR180: "FEAT_VR180",
+	"3D": "FEAT_3D",
+	HDR: "FEAT_HDR",
+	Location: "FEAT_LOCATION",
+	Purchased: "FEAT_PURCHASED",
 	Relevance: "SORT_RELEVANCE",
 	Popularity: "SORT_POPULARITY",
 };
+
+// a Short in a grid (search's Shorts shelf, the subscriptions' Shorts page):
+// views over the thumbnail, the instance's thumbnails and reel endpoint
+function shortsGridItem(sample: any) {
+	const gi = structuredClone(sample);
+	const glv = find(gi, "shortsLockupViewModel");
+	const gid: string = glv.onTap.innertubeCommand.reelWatchEndpoint.videoId;
+	const gtitle: string = glv.overlayMetadata.primaryText?.content ?? "";
+	const gviews: string = glv.overlayMetadata.secondaryText.content;
+	for (const k of ["inlinePopStateEntityKey", "indexInCollection"]) delete glv[k];
+	const greel = glv.onTap.innertubeCommand.reelWatchEndpoint;
+	for (const k of ["playerParams", "params", "sequenceParams", "loggingContext", "ustreamerConfig"]) delete greel[k];
+	greel.thumbnail.thumbnails = "{{REEL_THUMBS}}";
+	glv.thumbnailViewModel.thumbnailViewModel.image.sources = "{{THUMBS}}";
+	glv.accessibilityText = "{{A11Y}}";
+	const pairs: [string, string][] = [[gid, "VIDEO_ID"], [gviews, "VIEWS_SHORT"]];
+	if (gtitle) pairs.splice(1, 0, [gtitle, "TITLE"]);
+	return { item: tokenize(strings(dropKey(clean(gi), "playerParams"), (x) => x.replace(/&pp=[^&"]*/, "")), pairs, [[gid, "VIDEO_ID"]]), samples: [gid, gtitle].filter(Boolean) };
+}
 
 // a classic videoRenderer (search results)
 function videoRendererTpl(sample: any) {
@@ -1127,6 +1149,19 @@ function searchPage(dir: string, signedIn: boolean) {
 		find(cont, "continuationCommand").token = "{{CONTINUATION}}";
 		save("item/continuation_search", cont);
 	}
+	if (signedIn) {
+		// the Shorts shelf among the results (and alone under the Shorts chip)
+		const shelf = clean(structuredClone(all.find((it: any) => it.gridShelfViewModel)));
+		const g = shortsGridItem(shelf.gridShelfViewModel.contents[0]);
+		save("item/shorts_lockup_search", g.item, g.samples);
+		shelf.gridShelfViewModel.contents = "{{ITEMS}}";
+		save("search/shorts_shelf", shelf);
+		// under the Shorts chip: the grid alone, every item shown, no heading
+		const chip = clean(JSON.parse(body("search-chips2", /^005-.*search\.resp$/)));
+		const grid = find(chip.onResponseReceivedCommands[0], "gridShelfViewModel");
+		grid.contents = "{{ITEMS}}";
+		save("search/shorts_grid", { gridShelfViewModel: grid });
+	}
 	sl.contents = [{ itemSectionRenderer: { contents: "{{ITEMS}}" } }, "{{CONTINUATION_ITEM}}"];
 	p.estimatedResults = "{{ESTIMATED}}";
 	const h = p.header.searchHeaderRenderer;
@@ -1139,7 +1174,7 @@ function searchPage(dir: string, signedIn: boolean) {
 		r.navigationEndpoint = { commandMetadata: { webCommandMetadata: { sendPost: true, apiUrl: "/youtubei/v1/search" } }, continuationCommand: { token: `{{CHIP_${k}}}`, request: "CONTINUATION_REQUEST_TYPE_SEARCH", command: { showReloadUiCommand: { targetId: "search-feed" } } } };
 	}
 	const groups = find(h, "searchFilterOptionsDialogRenderer").groups;
-	const kept = groups.filter((g: any) => contentOf(g.searchFilterGroupRenderer.title) !== "Features");
+	const kept = groups;
 	for (const g of kept) {
 		const gr = g.searchFilterGroupRenderer;
 		gr.filters = gr.filters.filter((f: any) => SEARCH_FILTERS[contentOf(f.searchFilterRenderer.label)]);

@@ -1,0 +1,48 @@
+{
+	"gridShelfViewModel": {
+		"contents": "{{ITEMS}}",
+		"header": {
+			"sectionHeaderViewModel": {
+				"headline": {
+					"content": "Shorts"
+				},
+				"leadingAccessory": {
+					"image": {
+						"sources": [
+							{
+								"clientResource": {
+									"imageName": "YOUTUBE_SHORTS_BRAND_24"
+								}
+							}
+						]
+					}
+				}
+			}
+		},
+		"contentAspectRatio": "GRID_SHELF_CONTENT_ASPECT_RATIO_TWO_BY_THREE",
+		"enableVerticalExpansion": true,
+		"showMoreButton": {
+			"buttonViewModel": {
+				"iconName": "EXPAND",
+				"title": "Show more",
+				"style": "BUTTON_VIEW_MODEL_STYLE_MONO",
+				"type": "BUTTON_VIEW_MODEL_TYPE_OUTLINE",
+				"buttonSize": "BUTTON_VIEW_MODEL_SIZE_DEFAULT",
+				"state": "BUTTON_VIEW_MODEL_STATE_ACTIVE",
+				"iconPosition": "BUTTON_VIEW_MODEL_ICON_POSITION_TRAILING"
+			}
+		},
+		"showLessButton": {
+			"buttonViewModel": {
+				"iconName": "COLLAPSE",
+				"title": "Show less",
+				"style": "BUTTON_VIEW_MODEL_STYLE_MONO",
+				"type": "BUTTON_VIEW_MODEL_TYPE_OUTLINE",
+				"buttonSize": "BUTTON_VIEW_MODEL_SIZE_DEFAULT",
+				"state": "BUTTON_VIEW_MODEL_STATE_ACTIVE",
+				"iconPosition": "BUTTON_VIEW_MODEL_ICON_POSITION_TRAILING"
+			}
+		},
+		"minCollapsedItemCount": 10
+	}
+}
