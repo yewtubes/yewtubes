@@ -38,6 +38,6 @@ export async function pageFor(url: URL, viewer: Viewer): Promise<PageData | Resp
 		};
 	}
 	if (path === "/results") return searchPage(url, viewer);
-	if (/^\/shorts\/(?:[A-Za-z0-9_-]{11})?$/.test(path)) return shortsPage(url, viewer);
+	if (/^\/shorts(?:\/(?:[A-Za-z0-9_-]{11})?)?$/.test(path)) return shortsPage(url, viewer);
 	return browsePage(url, viewer);
 }

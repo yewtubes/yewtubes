@@ -4,7 +4,8 @@
 // instance doesn't are the page parts still to implement. Screenshots and the
 // lists go to captures/compare/<name>/ (gitignored: the live side is a real
 // account's page).
-//   bun scripts/research/compare.ts --cookies file.txt [--login bob:yewtube-demo] [--narrow] name=/live/path=/our/path ...
+//   bun scripts/research/compare.ts --cookies file.txt [--login bob:yewtube-demo] [--narrow] "name|/live/path|/our/path" ...
+//   bun scripts/research/compare.ts --signed-out [--narrow] "name|/live/path|/our/path" ...
 // An our-path of "-" means the same path as live.
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -19,18 +20,23 @@ const opt = (n: string) => (args.includes(n) ? args[args.indexOf(n) + 1] : undef
 const cookies = opt("--cookies");
 const [login, password] = (opt("--login") ?? "bob:yewtube-demo").split(":");
 const narrow = args.includes("--narrow");
-const pages = args.filter((a, i) => a.includes("=") && !args[i - 1]?.startsWith("--")).map((a) => {
-	const [name, live, ours] = a.split("=");
+const signedOut = args.includes("--signed-out");
+const pages = args.filter((a, i) => a.includes("|") && !args[i - 1]?.startsWith("--")).map((a) => {
+	const [name, live, ours] = a.split("|");
 	return { name, live, ours: !ours || ours === "-" ? live : ours };
 });
 
 const viewport = narrow ? { width: 412, height: 860 } : { width: 1400, height: 900 };
+// youtube.com through the outbound proxy, the instance directly (Playwright
+// sends loopback through a browser's proxy too, so two browsers)
+const executablePath = process.env.CHROME_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined;
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", proxy });
-const live = await liveContext(browser, cookies, { viewport });
-const local = await browser.newContext({ viewport, locale: "en-US" });
+const browser = await chromium.launch({ executablePath, proxy });
+const localBrowser = await chromium.launch({ executablePath });
+const live = await liveContext(browser, signedOut ? undefined : cookies, { viewport });
+const local = await localBrowser.newContext({ viewport, locale: "en-US" });
 const ourPage = await local.newPage();
-await signIn(ourPage, login, password, ORIGIN);
+if (!signedOut) await signIn(ourPage, login, password, ORIGIN);
 
 // visible custom elements in the app, in document order, counted
 const outline = (page: Page) =>
@@ -59,7 +65,7 @@ async function open(page: Page, url: string, shot: string) {
 const livePage = await live.ctx.newPage();
 const summary: string[] = [];
 for (const p of pages) {
-	const dir = join("captures", "compare", p.name);
+	const dir = join("captures", "compare", signedOut ? `${p.name}-out` : p.name);
 	mkdirSync(dir, { recursive: true });
 	const [a, b] = [await open(livePage, `https://www.youtube.com${p.live}`, join(dir, "live.png")), await open(ourPage, `${ORIGIN}${p.ours}`, join(dir, "ours.png"))];
 	const missing = Object.keys(a).filter((t) => !b[t]).sort();
@@ -69,6 +75,6 @@ for (const p of pages) {
 	summary.push(...lines);
 	console.log(lines.join("\n"));
 }
-writeFileSync(join("captures", "compare", narrow ? "summary-narrow.txt" : "summary.txt"), summary.join("\n") + "\n");
-await browser.close();
+writeFileSync(join("captures", "compare", `summary${signedOut ? "-out" : ""}${narrow ? "-narrow" : ""}.txt`), summary.join("\n") + "\n");
+await Promise.all([browser.close(), localBrowser.close()]);
 process.exit(0);

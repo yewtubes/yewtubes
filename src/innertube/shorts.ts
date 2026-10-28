@@ -135,7 +135,7 @@ route("reel/reel_watch_sequence", async ({ body, viewer }) => {
 	return sequence(t?.k === "shorts" ? t.v : "", t?.o ?? 0, viewer);
 });
 
-// /shorts/<id>, and /shorts/ (the newest Short, as YouTube opens a feed of them)
+// /shorts/<id>, and /shorts or /shorts/ (the newest Short, as YouTube opens a feed of them)
 export async function shortsPage(url: URL, viewer: Viewer): Promise<PageData | Response | undefined> {
 	const id = url.pathname.slice("/shorts/".length);
 	let v: Video | undefined;
