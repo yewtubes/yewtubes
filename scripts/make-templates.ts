@@ -499,6 +499,30 @@ function channel() {
 	sections.targetId = "{{TARGET_ID}}";
 	save("channel/home_sections", tokenize(sections, channelPairs(), ids), samples);
 
+	// --- home tab: the channel trailer or featured video, played inline ---
+	const hp = clean(pageVar(body("channel-home", /^001-/)));
+	const hsec = hp.contents.twoColumnBrowseResultsRenderer.tabs.find((x: any) => x.tabRenderer?.selected).tabRenderer.content.sectionListRenderer.contents;
+	const playerSec = structuredClone(hsec.find((x: any) => find(x, "channelVideoPlayerRenderer")));
+	const cvp = find(playerSec, "channelVideoPlayerRenderer");
+	const pid: string = cvp.videoId;
+	const ptitle: string = contentOf(cvp.title);
+	const plabel: string = cvp.title.accessibility.accessibilityData.label;
+	cvp.description = "{{DESCRIPTION_RUNS}}";
+	cvp.viewCountText.simpleText = "{{VIEWS_FULL}}";
+	cvp.publishedTimeText = { runs: [{ text: "{{PUBLISHED}}" }] };
+	const prepared = strings(dropKey(dropKey(playerSec, "watchEndpointSupportedOnesieConfig"), "playerParams"), (x) => x.replace(/&pp=[^&"]*/, ""));
+	save("channel/video_player", tokenize(prepared, [[plabel, "TITLE_DURATION_LABEL"], [pid, "VIDEO_ID"], [ptitle, "TITLE"]], [[pid, "VIDEO_ID"]]), [pid, ptitle]);
+
+	// --- home tab: a playlist's section (title to the playlist, Play all) ---
+	const plSec = structuredClone(hsec.find((x: any) => find(x, "shelfRenderer")?.playAllButton && find(find(x, "shelfRenderer").endpoint ?? {}, "browseEndpoint")?.browseId?.startsWith("VL")));
+	const plShelf = find(plSec, "shelfRenderer");
+	const plId: string = plShelf.endpoint.browseEndpoint.browseId.slice(2);
+	const plTitle = contentOf(plShelf.title);
+	const plFirst: string = plShelf.playAllButton.buttonRenderer.navigationEndpoint.watchEndpoint.videoId;
+	find(plShelf, "horizontalListRenderer").items = "{{ITEMS}}";
+	const plOut = tokenize(dropKey(plSec, "loggingContext"), [[plId, "PLAYLIST_ID"], [plTitle, "SHELF_TITLE"], [plFirst, "FIRST_VIDEO_ID"]], [[plId, "PLAYLIST_ID"], [plFirst, "FIRST_VIDEO_ID"]]);
+	save("channel/playlist_shelf", plOut, [plId, plTitle, plFirst]);
+
 	// --- playlists tab ---
 	const [[, pls]] = bodies("channel2", /browse/).filter(([req]) => req.post?.params?.startsWith("EglwbGF5bGlzdHP"));
 	const plTab = pls.contents.twoColumnBrowseResultsRenderer.tabs.find((x: any) => x.tabRenderer?.selected).tabRenderer;

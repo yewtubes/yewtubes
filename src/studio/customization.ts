@@ -4,9 +4,10 @@
 // sends first (a resumable upload to /channel_image_upload/profile|banner,
 // scotty.ts, answered with the blob id the update then names).
 //
-// Stored: name, handle, description, picture, banner, links and contact
-// email. The Home tab's layout (shelves, trailer, featured video), the video
-// watermark, pronouns and collaborations aren't stored yet: an update that
+// Stored: name, handle, description, picture, banner, links, contact email,
+// and the Home tab: shown or not, its sections (home-layout.ts), the trailer
+// and the featured video. The video watermark, pronouns and collaborations
+// aren't stored yet: an update that
 // changes them gets an error for those fields (or, for the two Studio reads
 // no per-field result for, for the whole update), so Studio reports them
 // unsaved.
@@ -22,6 +23,7 @@ import { ApiError, type Ctx, route } from "../innertube/router";
 import { make } from "../innertube/tpl";
 import { creatorChannel } from "./channel";
 import { imageTransfer } from "./scotty";
+import { cleanShelves, savedShelves, shelfInfo } from "../home-layout";
 
 const DAY = 86_400_000;
 const CHANGES_PER_14_DAYS = 2;
@@ -31,10 +33,10 @@ const MAX_LINKS = 14;
 const IMAGE_LIMIT = { profile: 4 * 1024 ** 2, banner: 6 * 1024 ** 2 } as const;
 type Kind = keyof typeof IMAGE_LIMIT;
 type Link = { title: string; url: string };
-type Row = { id: string; handle: string; title: string; description: string; avatar_path: string | null; banner_path: string | null; links: Link[]; business_email: string | null };
+type Row = { id: string; handle: string; title: string; description: string; avatar_path: string | null; banner_path: string | null; links: Link[]; business_email: string | null; trailer_video_id: string | null; featured_video_id: string | null; featured_video_title: string | null; home_tab_enabled: boolean; home_shelves: unknown };
 
 async function channelRow(id: string) {
-	const [c] = (await sql`select id, handle, title, description, avatar_path, banner_path, links, business_email from channels where id = ${id}`) as Row[];
+	const [c] = (await sql`select id, handle, title, description, avatar_path, banner_path, links, business_email, trailer_video_id, featured_video_id, featured_video_title, home_tab_enabled, home_shelves from channels where id = ${id}`) as Row[];
 	return c;
 }
 
@@ -56,7 +58,18 @@ export async function pageSettings(channelId: string) {
 		defaultProfilePicture: { fifeUrl: `${PUBLIC_ORIGIN}/ggpht/${c.id}/avatar-default` },
 		channelLinksInfo: c.links.length ? { channelLinks: c.links.map((l) => ({ ...l, status: "CHANNEL_LINK_STATUS_OK" })) } : {},
 		businessEmail: c.business_email ?? "",
+		homeTab: { enabled: c.home_tab_enabled },
+		shelfInfo: await shelfInfo(c.id, savedShelves(c.home_shelves)),
+		isFakeShelfInfo: !savedShelves(c.home_shelves),
+		trailerVideoInfo: c.trailer_video_id ? { videoId: c.trailer_video_id } : {},
+		featuredVideoInfo: c.featured_video_id ? { videoId: c.featured_video_id, ...(c.featured_video_title ? { title: c.featured_video_title } : {}) } : {},
 	};
+}
+
+// a spotlight video must be one of the channel's public videos
+async function spotlightVideo(channelId: string, id: unknown) {
+	const [v] = await sql`select id from videos where id = ${String(id ?? "")} and channel_id = ${channelId} and visibility = 'public' and deleted_at is null`;
+	return v?.id as string | undefined;
 }
 
 async function recentChanges(channelId: string, kind: "title" | "handle") {
@@ -183,9 +196,6 @@ route(
 
 // fields Studio can send that this instance doesn't store
 const UNSTORED: [string, string][] = [
-	["shelfListUpdate", "shelfListUpdateStatus"],
-	["trailerVideoUpdate", "trailerVideoUpdateStatus"],
-	["featuredVideoUpdate", "featuredVideoUpdateStatus"],
 	["watermarkImageUpdate", "watermarkImageUpdateStatus"],
 	["vanityUrlClaim", "vanityUrlClaimStatus"],
 	["collaborationsConfigUpdate", "collaborationsConfigUpdateStatus"],
@@ -196,7 +206,6 @@ route(
 	async (ctx) => {
 		const viewer = owner(ctx, ctx.body.externalChannelId);
 		const b = ctx.body;
-		if (b.homeTabUpdate?.enabled) throw new ApiError(400, "This instance doesn't save the Home tab's layout yet.", "badRequest");
 		if (b.pronounsUpdate?.pronouns?.pronounsOptions?.length) throw new ApiError(400, "This instance doesn't save pronouns yet.", "badRequest");
 		const c = await channelRow(viewer.channelId);
 		const status: Record<string, unknown> = {};
@@ -255,6 +264,28 @@ route(
 			if (kind === "profile") await sql`update channels set avatar_path = ${rel} where id = ${c.id}`;
 			else await sql`update channels set banner_path = ${rel} where id = ${c.id}`;
 			dropFile(old);
+		}
+
+		if (typeof b.homeTabUpdate?.enabled === "boolean") await sql`update channels set home_tab_enabled = ${b.homeTabUpdate.enabled} where id = ${c.id}`;
+		if (b.shelfListUpdate) {
+			const shelves = await cleanShelves(b.shelfListUpdate, c.id);
+			if (typeof shelves === "string") failed("shelfListUpdateStatus", shelves);
+			else await sql`update channels set home_shelves = ${JSON.stringify(shelves)}::text::jsonb where id = ${c.id}`;
+		}
+
+		// the spotlight: { videoId } or { delete } for the trailer, { updateInfo:
+		// { videoId, title } } or { delete } for the featured video
+		if (b.trailerVideoUpdate) {
+			const id = b.trailerVideoUpdate.delete ? null : await spotlightVideo(c.id, b.trailerVideoUpdate.videoId);
+			if (id === undefined) failed("trailerVideoUpdateStatus", "Choose one of your public videos.");
+			else await sql`update channels set trailer_video_id = ${id} where id = ${c.id}`;
+		}
+		if (b.featuredVideoUpdate) {
+			const info = b.featuredVideoUpdate.updateInfo;
+			const id = b.featuredVideoUpdate.delete ? null : await spotlightVideo(c.id, info?.videoId);
+			const title = String(info?.title ?? "").trim().slice(0, MAX_TITLE) || null;
+			if (id === undefined) failed("featuredVideoUpdateStatus", "Choose one of your public videos.");
+			else await sql`update channels set featured_video_id = ${id}, featured_video_title = ${id ? title : null} where id = ${c.id}`;
 		}
 
 		for (const [field, key] of UNSTORED) if (b[field]) failed(key, "This instance doesn't save this setting yet.");

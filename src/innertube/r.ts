@@ -34,6 +34,11 @@ export type Video = {
 
 export type Channel = {
 	id: string;
+	trailer_video_id?: string | null;
+	featured_video_id?: string | null;
+	featured_video_title?: string | null;
+	home_tab_enabled?: boolean;
+	home_shelves?: unknown;
 	handle: string;
 	title: string;
 	description: string;

@@ -1,0 +1,106 @@
+{
+	"itemSectionRenderer": {
+		"contents": [
+			{
+				"shelfRenderer": {
+					"title": {
+						"runs": [
+							{
+								"text": "{{SHELF_TITLE}}",
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"url": "/playlist?list={{PLAYLIST_ID}}",
+											"webPageType": "WEB_PAGE_TYPE_PLAYLIST",
+											"rootVe": 5754,
+											"apiUrl": "/youtubei/v1/browse"
+										}
+									},
+									"browseEndpoint": {
+										"browseId": "VL{{PLAYLIST_ID}}"
+									}
+								}
+							}
+						]
+					},
+					"endpoint": {
+						"commandMetadata": {
+							"webCommandMetadata": {
+								"url": "/playlist?list={{PLAYLIST_ID}}",
+								"webPageType": "WEB_PAGE_TYPE_PLAYLIST",
+								"rootVe": 5754,
+								"apiUrl": "/youtubei/v1/browse"
+							}
+						},
+						"browseEndpoint": {
+							"browseId": "VL{{PLAYLIST_ID}}"
+						}
+					},
+					"content": {
+						"horizontalListRenderer": {
+							"items": "{{ITEMS}}",
+							"visibleItemCount": 4,
+							"nextButton": {
+								"buttonRenderer": {
+									"style": "STYLE_DEFAULT",
+									"size": "SIZE_DEFAULT",
+									"isDisabled": false,
+									"icon": {
+										"iconType": "CHEVRON_RIGHT"
+									},
+									"accessibility": {
+										"label": "Next"
+									}
+								}
+							},
+							"previousButton": {
+								"buttonRenderer": {
+									"style": "STYLE_DEFAULT",
+									"size": "SIZE_DEFAULT",
+									"isDisabled": false,
+									"icon": {
+										"iconType": "CHEVRON_LEFT"
+									},
+									"accessibility": {
+										"label": "Previous"
+									}
+								}
+							},
+							"force16By9ThumbnailAspectRatio": true
+						}
+					},
+					"playAllButton": {
+						"buttonRenderer": {
+							"style": "STYLE_TEXT",
+							"size": "SIZE_DEFAULT",
+							"isDisabled": false,
+							"text": {
+								"runs": [
+									{
+										"text": "Play all"
+									}
+								]
+							},
+							"icon": {
+								"iconType": "PLAY_ALL"
+							},
+							"navigationEndpoint": {
+								"commandMetadata": {
+									"webCommandMetadata": {
+										"url": "/watch?v={{FIRST_VIDEO_ID}}&list={{PLAYLIST_ID}}",
+										"webPageType": "WEB_PAGE_TYPE_WATCH",
+										"rootVe": 3832
+									}
+								},
+								"watchEndpoint": {
+									"videoId": "{{FIRST_VIDEO_ID}}",
+									"playlistId": "{{PLAYLIST_ID}}"
+								}
+							}
+						}
+					}
+				}
+			}
+		]
+	}
+}

@@ -1,0 +1,86 @@
+{
+	"itemSectionRenderer": {
+		"contents": [
+			{
+				"channelVideoPlayerRenderer": {
+					"videoId": "{{VIDEO_ID}}",
+					"title": {
+						"runs": [
+							{
+								"text": "{{TITLE}}",
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"url": "/watch?v={{VIDEO_ID}}",
+											"webPageType": "WEB_PAGE_TYPE_WATCH",
+											"rootVe": 3832
+										}
+									},
+									"watchEndpoint": {
+										"videoId": "{{VIDEO_ID}}"
+									}
+								}
+							}
+						],
+						"accessibility": {
+							"accessibilityData": {
+								"label": "{{TITLE_DURATION_LABEL}}"
+							}
+						}
+					},
+					"description": "{{DESCRIPTION_RUNS}}",
+					"viewCountText": {
+						"simpleText": "{{VIEWS_FULL}}"
+					},
+					"publishedTimeText": {
+						"runs": [
+							{
+								"text": "{{PUBLISHED}}"
+							}
+						]
+					},
+					"readMoreText": {
+						"runs": [
+							{
+								"text": "Read more",
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"url": "/watch?v={{VIDEO_ID}}",
+											"webPageType": "WEB_PAGE_TYPE_WATCH",
+											"rootVe": 3832
+										}
+									},
+									"watchEndpoint": {
+										"videoId": "{{VIDEO_ID}}"
+									}
+								}
+							}
+						]
+					},
+					"inlinePlaybackEndpoint": {
+						"commandMetadata": {
+							"webCommandMetadata": {
+								"url": "/watch?v={{VIDEO_ID}}",
+								"webPageType": "WEB_PAGE_TYPE_WATCH",
+								"rootVe": 3832
+							}
+						},
+						"watchEndpoint": {
+							"videoId": "{{VIDEO_ID}}",
+							"playerExtraUrlParams": [
+								{
+									"key": "inline",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"rendererContext": {
+						"loggingContext": {}
+					}
+				}
+			}
+		]
+	}
+}

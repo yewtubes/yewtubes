@@ -5,10 +5,11 @@
 
 import type { Viewer } from "../client/page";
 import { PUBLIC_ORIGIN } from "../config";
-import { channelVideos, isSubscribed, markWatched } from "../data";
+import { channelVideos, getVideo, isSubscribed, markWatched } from "../data";
 import { encodeToken } from "../ids";
-import { channelPlaylistLockups } from "./playlists";
-import { type Channel, dateText, grouped } from "./r";
+import { channelPlaylistLockups, getPlaylist, playlistVideos } from "./playlists";
+import { type ShelfDefinition, savedShelves } from "../home-layout";
+import { type Channel, type Video, dateText, grouped, urlEndpoint } from "./r";
 import { channelTabFromParams } from "./proto";
 import { make, tpl, fill, type Vars } from "./tpl";
 import { baseVars, channelVars, videoVars } from "./vars";
@@ -59,22 +60,90 @@ export async function videoGridReload(c: Channel, viewer: Viewer, sort: ChannelS
 	return make("channel/videos_reload", { ...channelVars(c), ...sortVars(c, sort, kind), ITEMS: await videoGridItems(c, viewer, 0, sort, kind) });
 }
 
-async function homeTab(c: Channel, viewer: Viewer, vars: Vars) {
-	const shelf = async (title: string, sort: ChannelSort) => {
-		const videos = await markWatched(viewer, await channelVideos(c.id, viewer, 12, 0, sort));
-		if (!videos.length) return undefined;
-		return make("channel/home_shelf", {
-			...vars,
-			SHELF_TITLE: title,
-			SHELF_PARAMS: tabParams("videos"),
-			ITEMS: videos.map((v) => make("item/video_lockup_shelf", { ...vars, ...videoVars(v) })),
-		});
-	};
-	// YouTube's Shorts shelf comes after the video shelves
+// a description as runs, its web links made links
+function descriptionRuns(text: string) {
+	return text.split(/(https?:\/\/[^\s]+)/).filter(Boolean).map((t) => (/^https?:\/\//.test(t) ? { text: t, navigationEndpoint: urlEndpoint(t, true) } : { text: t }));
+}
+
+// the Home tab's spotlight, as Studio's Layout sets it: the featured video
+// for returning subscribers, the trailer for everyone else
+async function spotlight(c: Channel, viewer: Viewer, vars: Vars) {
+	const subscribed = viewer && viewer.channelId !== c.id ? await isSubscribed(viewer, c.id) : false;
+	const id = subscribed ? c.featured_video_id : c.trailer_video_id;
+	const v = id ? await getVideo(id, viewer) : undefined;
+	if (!v || v.visibility !== "public") return undefined;
+	const title = (subscribed && c.featured_video_title) || v.title;
+	const vv = videoVars(v as Video);
+	return make("channel/video_player", { ...vars, ...vv, TITLE: title, TITLE_DURATION_LABEL: `${title} ${vv.DURATION_LABEL}`, DESCRIPTION_RUNS: v.description ? { runs: descriptionRuns(v.description) } : undefined });
+}
+
+// a shelf of the channel's videos, titled and linked to its Videos tab
+async function videoShelf(c: Channel, viewer: Viewer, vars: Vars, title: string, sort: ChannelSort) {
+	const videos = await markWatched(viewer, await channelVideos(c.id, viewer, 12, 0, sort));
+	if (!videos.length) return undefined;
+	return make("channel/home_shelf", { ...vars, SHELF_TITLE: title, SHELF_PARAMS: tabParams("videos"), ITEMS: videos.map((v) => make("item/video_lockup_shelf", { ...vars, ...videoVars(v) })) });
+}
+
+async function shortsShelf(c: Channel, viewer: Viewer) {
 	const shorts = await channelVideos(c.id, viewer, 12, 0, "newest", "shorts");
-	const shortsShelf = shorts.length ? make("channel/shorts_shelf", { ITEMS: shorts.map((v) => (shortLockup(v, viewer) as { richItemRenderer: { content: unknown } }).richItemRenderer.content) }) : undefined;
-	const sections = [await shelf("Videos", "newest"), c.video_count > 4 ? await shelf("Popular videos", "popular") : undefined, shortsShelf].filter(Boolean);
-	return { sectionListRenderer: make("channel/home_sections", { ...vars, SECTIONS: sections, TARGET_ID: `browse-feed${c.id}featured` }) };
+	return shorts.length ? make("channel/shorts_shelf", { ITEMS: shorts.map((v) => (shortLockup(v, viewer) as { richItemRenderer: { content: unknown } }).richItemRenderer.content) }) : undefined;
+}
+
+// For You: the channel's videos the viewer hasn't watched, YouTube's home
+// ranking (views, then how recent), Shorts and long videos as the section
+// asks
+async function forYouShelf(c: Channel, viewer: Viewer, vars: Vars, f: { includeLongFormVideos?: boolean; includeShorts?: boolean; contentRecency?: string }) {
+	const recent = f.contentRecency === "FOR_YOU_CONTENT_RECENCY_RECENT_ONLY";
+	const pick = async (kind: GridKind) => (await channelVideos(c.id, viewer, 24, 0, recent ? "newest" : "popular", kind)).slice(0, 12);
+	const videos = await markWatched(viewer, [...(f.includeLongFormVideos !== false ? await pick("videos") : []), ...(f.includeShorts !== false && f.includeLongFormVideos === false ? await pick("shorts") : [])]);
+	const fresh = videos.filter((v) => !v.watched_ms);
+	const list = (fresh.length ? fresh : videos).slice(0, 12);
+	if (!list.length) return undefined;
+	return make("channel/home_shelf", { ...vars, SHELF_TITLE: "For You", SHELF_PARAMS: tabParams("videos"), ITEMS: list.map((v) => make("item/video_lockup_shelf", { ...vars, ...videoVars(v) })) });
+}
+
+// playlists as a shelf of playlist lockups, linked to the Playlists tab
+async function playlistsShelf(c: Channel, viewer: Viewer, vars: Vars, title: string, ids?: string[]) {
+	let lockups = await channelPlaylistLockups(c, viewer);
+	if (ids) {
+		const byId = new Map(lockups.map((l) => [String(JSON.stringify(l).match(/"contentId":"([^"]+)"/)?.[1]), l]));
+		lockups = ids.map((id) => byId.get(id)).filter(Boolean) as typeof lockups;
+	}
+	if (!lockups.length) return undefined;
+	return make("channel/home_shelf", { ...vars, SHELF_TITLE: title || "Created playlists", SHELF_PARAMS: tabParams("playlists"), ITEMS: lockups });
+}
+
+// one playlist's videos, titled with the playlist and its Play all
+async function playlistShelf(viewer: Viewer, vars: Vars, id: string) {
+	const p = await getPlaylist(id, viewer);
+	if (!p || p.visibility === "private") return undefined;
+	const videos = await markWatched(viewer, await playlistVideos(p, viewer, 12, 0));
+	if (!videos.length) return undefined;
+	return make("channel/playlist_shelf", { ...vars, PLAYLIST_ID: p.id, SHELF_TITLE: p.title, FIRST_VIDEO_ID: videos[0].id, ITEMS: videos.map((v) => make("item/video_lockup_shelf", { ...vars, ...videoVars(v) })) });
+}
+
+async function section(c: Channel, viewer: Viewer, vars: Vars, d: ShelfDefinition) {
+	if ("playlistShelfDefinition" in d) return playlistShelf(viewer, vars, d.playlistShelfDefinition.playlistId);
+	if ("playlistCollectionShelfDefinition" in d) return playlistsShelf(c, viewer, vars, d.playlistCollectionShelfDefinition.title, d.playlistCollectionShelfDefinition.playlistIds);
+	if (!("predefinedShelfDefinition" in d)) return undefined;
+	const { type, forYouShelfInfo } = d.predefinedShelfDefinition;
+	if (type === "SHELF_TYPE_FOR_YOU") return forYouShelf(c, viewer, vars, forYouShelfInfo ?? {});
+	if (type === "SHELF_TYPE_RECENT_UPLOADS") return videoShelf(c, viewer, vars, "Videos", "newest");
+	if (type === "SHELF_TYPE_POPULAR_UPLOADS") return videoShelf(c, viewer, vars, "Popular videos", "popular");
+	if (type === "SHELF_TYPE_SHORT_MOBILE_VIDEOS_UPLOADS") return shortsShelf(c, viewer);
+	if (type === "SHELF_TYPE_CREATED_PLAYLISTS") return playlistsShelf(c, viewer, vars, "Created playlists");
+	// live streams, posts, collaborations, clips: the instance has none yet
+	return undefined;
+}
+
+async function homeTab(c: Channel, viewer: Viewer, vars: Vars) {
+	const saved = savedShelves(c.home_shelves);
+	const sections = [await spotlight(c, viewer, vars)];
+	if (saved) for (const d of saved) sections.push(await section(c, viewer, vars, d));
+	// the default layout: newest videos, popular ones once there are a few,
+	// then YouTube's Shorts shelf
+	else sections.push(await videoShelf(c, viewer, vars, "Videos", "newest"), c.video_count > 4 ? await videoShelf(c, viewer, vars, "Popular videos", "popular") : undefined, await shortsShelf(c, viewer));
+	return { sectionListRenderer: make("channel/home_sections", { ...vars, SECTIONS: sections.filter(Boolean), TARGET_ID: `browse-feed${c.id}featured` }) };
 }
 
 async function playlistsTab(c: Channel, viewer: Viewer, vars: Vars) {
@@ -109,6 +178,11 @@ export async function channelHeader(c: Channel, viewer: Viewer, vars: Vars) {
 }
 
 export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer) {
+	// with the Home tab turned off in Studio, the channel opens on its first other tab
+	const hasPlaylists = (await channelPlaylistLockups(c, viewer)).length > 0;
+	const has = async (kind: GridKind) => (await channelVideos(c.id, viewer, 1, 0, "newest", kind)).length > 0;
+	const available: ChannelTab[] = [...(c.home_tab_enabled === false ? [] : ["featured" as const]), ...((await has("videos")) ? ["videos" as const] : []), ...((await has("shorts")) ? ["shorts" as const] : []), ...(hasPlaylists ? ["playlists" as const] : [])];
+	if (tab === "featured" && !available.includes("featured")) tab = available[0] ?? "featured";
 	const path = `/@${c.handle}${tab === "featured" ? "" : `/${tab}`}`;
 	const vars = { ...baseVars(viewer, path), ...channelVars(c) };
 	const page = make("channel/page", vars);
@@ -118,9 +192,7 @@ export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer) {
 	else if (tab === "playlists") content = await playlistsTab(c, viewer, vars);
 	else content = await homeTab(c, viewer, vars);
 	// YouTube lists only the tabs a channel has content for
-	const hasPlaylists = (await channelPlaylistLockups(c, viewer)).length > 0;
-	const has = async (kind: GridKind) => (await channelVideos(c.id, viewer, 1, 0, "newest", kind)).length > 0;
-	const show = ["featured", ...((await has("videos")) ? ["videos"] : []), ...((await has("shorts")) ? ["shorts"] : []), ...(hasPlaylists ? ["playlists"] : []), "search"];
+	const show: string[] = [...(available.includes(tab) ? available : [tab, ...available]), "search"];
 	const tabs = show.map((name) => {
 		const t = page.tabs[name];
 		if (name === tab) Object.assign(t.tabRenderer, { selected: true, content });

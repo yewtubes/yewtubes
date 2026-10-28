@@ -3,6 +3,7 @@
 // requests naming another channel or another channel's videos get nothing.
 
 import { CATEGORIES } from "../categories";
+import { PUBLIC_ORIGIN } from "../config";
 import type { Viewer } from "../client/page";
 import { sql, textArray } from "../db";
 import { deleteMedia } from "../media/process";
@@ -48,8 +49,23 @@ route("creator/check_creator_bulk_action", (ctx) => ok(ctx.viewer, { status: "BU
 route("creator/list_creator_playlists", async (ctx) => {
 	const viewer = owner(ctx);
 	if (ctx.body.channelId && ctx.body.channelId !== viewer.channelId) return ok(viewer, { playlists: [] });
-	const rows = await sql`select id, title from playlists where user_id = ${viewer.userId} and kind = 'user' order by updated_at desc limit 500`;
-	return ok(viewer, { playlists: rows.map((p: any) => ({ playlistId: p.id, title: p.title, responseStatus: { statusCode: "CREATOR_ENTITY_STATUS_OK" } })) });
+	const rows = await sql`select p.id, p.title, p.visibility,
+		(select count(*)::int from playlist_items i join videos v on v.id = i.video_id where i.playlist_id = p.id and v.deleted_at is null) as count,
+		(select i.video_id from playlist_items i join videos v on v.id = i.video_id where i.playlist_id = p.id and v.deleted_at is null order by i.position limit 1) as first
+		from playlists p where p.user_id = ${viewer.userId} and p.kind = 'user' order by p.updated_at desc limit 500`;
+	// the fields the request's mask names, as Studio's pickers and playlist
+	// rows read them (playlistThumbnail is the first video's still)
+	const mask = ctx.body.mask ?? { playlistId: true, title: true };
+	return ok(viewer, {
+		playlists: rows.map((p: any) => ({
+			playlistId: p.id,
+			title: p.title,
+			...(mask.playlistThumbnail ? { playlistThumbnail: { thumbnails: p.first ? [{ url: `${PUBLIC_ORIGIN}/vi/${p.first}/mqdefault.jpg`, width: 320, height: 180 }] : [] } } : {}),
+			...(mask.videosCount ? { videosCount: String(p.count) } : {}),
+			...(mask.visibilitySetting ? { visibilitySetting: `CREATOR_PLAYLIST_VISIBILITY_${String(p.visibility).toUpperCase()}` } : {}),
+			responseStatus: { statusCode: "CREATOR_ENTITY_STATUS_OK" },
+		})),
+	});
 });
 
 // The content page's filter is a tree of and/not/channelIdIs/contentTypeIs
