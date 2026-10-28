@@ -1,0 +1,28 @@
+{
+	"chipCloudChipRenderer": {
+		"style": {
+			"styleType": "STYLE_DEFAULT"
+		},
+		"text": {
+			"simpleText": "{{TEXT}}"
+		},
+		"navigationEndpoint": {
+			"commandMetadata": {
+				"webCommandMetadata": {
+					"sendPost": true,
+					"apiUrl": "/youtubei/v1/next"
+				}
+			},
+			"continuationCommand": {
+				"token": "{{TOKEN}}",
+				"request": "CONTINUATION_REQUEST_TYPE_WATCH_NEXT",
+				"command": {
+					"showReloadUiCommand": {
+						"targetId": "watch-next-feed"
+					}
+				}
+			}
+		},
+		"isSelected": false
+	}
+}

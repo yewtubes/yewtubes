@@ -1,0 +1,40 @@
+{
+	"relatedChipCloudRenderer": {
+		"content": {
+			"chipCloudRenderer": {
+				"chips": "{{CHIPS}}",
+				"horizontalScrollable": false,
+				"nextButton": {
+					"buttonRenderer": {
+						"style": "STYLE_DEFAULT",
+						"size": "SIZE_DEFAULT",
+						"isDisabled": false,
+						"icon": {
+							"iconType": "CHEVRON_RIGHT"
+						},
+						"accessibility": {
+							"label": "Next"
+						}
+					}
+				},
+				"previousButton": {
+					"buttonRenderer": {
+						"style": "STYLE_DEFAULT",
+						"size": "SIZE_DEFAULT",
+						"isDisabled": false,
+						"icon": {
+							"iconType": "CHEVRON_LEFT"
+						},
+						"accessibility": {
+							"label": "Previous"
+						}
+					}
+				},
+				"style": {
+					"backgroundStyle": "CHIP_CLOUD_BACKGROUND_STYLE_UNKNOWN"
+				}
+			}
+		},
+		"showProminentChips": false
+	}
+}

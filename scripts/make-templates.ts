@@ -203,6 +203,17 @@ function save(name: string, data: unknown, samples: string[] = []) {
 	for (const b of findAll(data, "thumbnailBadgeViewModel")) if (b.text === "{{DURATION}}" && !b.icon) Object.assign(b, { icon: "{{DURATION_ICON}}", ...b });
 	// and the red bar of how much the viewer watched (PROGRESS_BAR, the same)
 	for (const o of findAll(data, "thumbnailBottomOverlayViewModel")) if (!o.progressBar && JSON.stringify(o).includes("{{DURATION}}")) Object.assign(o, { progressBar: "{{PROGRESS_BAR}}", ...o });
+	// feedback tokens YouTube minted for the capture's account (Not
+	// interested and its undo, a feed nudge's impression) don't travel: the feedback
+	// route accepts and drops this one
+	const tokens = (o: any) => {
+		if (!o || typeof o !== "object") return;
+		for (const [k, v] of Object.entries(o)) {
+			if ((k === "feedbackToken" || k === "undoToken") && typeof v === "string" && !v.startsWith("{{")) o[k] = "dismissed";
+			else tokens(v);
+		}
+	};
+	tokens(data);
 	const text = JSON.stringify(data);
 	const bad: string[] = [];
 	const host = FORBIDDEN_HOSTS.exec(text);
@@ -926,7 +937,22 @@ function watchPage(dir: string, signedIn: boolean) {
 	const relatedSample = related.contents.find((c: any) => c.lockupViewModel?.contentType === "LOCKUP_CONTENT_TYPE_VIDEO");
 	const relatedCont = related.contents.find((c: any) => c.continuationItemRenderer);
 	related.contents = "{{RELATED}}";
-	delete related.header; // "All / From <channel> / Related" filter chips (signed in): not supported yet
+	// signed in, the chips above the list: All (the list as loaded), then
+	// filters that reload it (From <channel>, Related, For you, Recently
+	// uploaded); the topic chips between them need topics, which videos here
+	// don't have
+	if (related.header) {
+		const cloud = clean(related.header);
+		const chips = find(cloud, "chips");
+		const from = structuredClone(chips.find((c: any) => /^From /.test(contentOf(c.chipCloudChipRenderer.text))));
+		from.chipCloudChipRenderer.text.simpleText = "{{TEXT}}";
+		find(from, "continuationCommand").token = "{{TOKEN}}";
+		save("item/related_chip", from);
+		save("item/related_chip_all", chips.find((c: any) => find(c, "relatedChipCommand")));
+		find(cloud, "chipCloudRenderer").chips = "{{CHIPS}}";
+		save("watch/related_chips", cloud);
+		related.header = "{{RELATED_HEADER}}";
+	}
 	const auto = overlay.autoplay.playerOverlayAutoplayRenderer;
 	const next = {
 		id: auto.videoId,
@@ -1017,6 +1043,26 @@ function watchPage(dir: string, signedIn: boolean) {
 function watch() {
 	watchPage("watch2", false);
 	watchPage("in-watch", true);
+	// the Shorts shelf YouTube puts near the top of the related list, and its
+	// lockups (no menu)
+	const gw = JSON.parse(body("in-comments2", /_get_watch\.resp$/)).find((x: any) => x.watchNextResponse).watchNextResponse;
+	const list = gw.contents.twoColumnWatchNextResults.secondaryResults.secondaryResults.results[0].itemSectionRenderer.contents;
+	const shelf = clean(structuredClone(list.find((c: any) => c.reelShelfRenderer)));
+	const sample = shelf.reelShelfRenderer.items[0];
+	shelf.reelShelfRenderer.items = "{{ITEMS}}";
+	save("watch/related_shorts_shelf", shelf);
+	const lv = sample.shortsLockupViewModel;
+	const id: string = lv.onTap.innertubeCommand.reelWatchEndpoint.videoId;
+	const title: string = lv.overlayMetadata.primaryText.content;
+	const views: string = lv.overlayMetadata.secondaryText.content;
+	for (const k of ["inlinePopStateEntityKey", "indexInCollection"]) delete lv[k];
+	const reel = lv.onTap.innertubeCommand.reelWatchEndpoint;
+	for (const k of ["playerParams", "params", "sequenceParams", "loggingContext", "ustreamerConfig"]) delete reel[k];
+	reel.thumbnail.thumbnails = "{{REEL_THUMBS}}";
+	lv.thumbnailViewModel.thumbnailViewModel.image.sources = "{{THUMBS}}";
+	lv.accessibilityText = "{{A11Y}}";
+	const item = tokenize(strings(dropKey(sample, "playerParams"), (x) => x.replace(/&pp=[^&"]*/, "")), [[id, "VIDEO_ID"], [title, "TITLE"], [views, "VIEWS_SHORT"]], [[id, "VIDEO_ID"]]);
+	save("item/shorts_lockup_related", item, [id, title]);
 }
 
 // ======================================================================

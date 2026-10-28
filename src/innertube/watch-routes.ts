@@ -5,7 +5,7 @@ import { decodeToken, isVideoId } from "../ids";
 import { commentsContinuation } from "./comments";
 import { playerResponse } from "./player";
 import { responseContext } from "./r";
-import { relatedItems, watchNext } from "./watch";
+import { RELATED_FILTERS, relatedItems, watchNext } from "./watch";
 import { ApiError, route } from "./router";
 import { playlistPanel } from "./playlists";
 import { recordWatch } from "./history";
@@ -18,12 +18,16 @@ route("player", async ({ body, viewer }) => {
 
 async function next(body: any, viewer: any) {
 	if (body.continuation) {
-		const tok = decodeToken<{ k: string; v: string; o?: number; s?: string; c?: string }>(body.continuation);
+		const tok = decodeToken<{ k: string; v: string; o?: number; s?: string; c?: string; f?: string }>(body.continuation);
 		if (!tok) throw new ApiError(400, "Invalid continuation");
-		if (tok.k === "related") {
+		if (tok.k === "related" || tok.k === "relchip") {
 			const v = await getVideo(tok.v, viewer);
 			if (!v) throw new ApiError(404, "Not found");
-			return { responseContext: responseContext(viewer), onResponseReceivedEndpoints: [{ appendContinuationItemsAction: { continuationItems: (await relatedItems(v, viewer, tok.o ?? 0)).items, targetId: "watch-next-feed" } }] };
+			const filter = RELATED_FILTERS.find((f) => f === tok.f) ?? "all";
+			const { items } = await relatedItems(v, viewer, tok.o ?? 0, filter);
+			// a chip: the list replaced; scrolling: more of it
+			const action = tok.k === "relchip" ? { reloadContinuationItemsCommand: { targetId: "watch-next-feed", continuationItems: items, slot: "RELOAD_CONTINUATION_SLOT_BODY" } } : { appendContinuationItemsAction: { continuationItems: items, targetId: "watch-next-feed" } };
+			return { responseContext: responseContext(viewer), onResponseReceivedEndpoints: [action] };
 		}
 		if (tok.k === "comments" || tok.k === "replies") return commentsContinuation(tok, viewer);
 		throw new ApiError(400, "Unknown continuation");

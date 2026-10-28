@@ -1,0 +1,15 @@
+{
+	"reelShelfRenderer": {
+		"title": {
+			"runs": [
+				{
+					"text": "Shorts"
+				}
+			]
+		},
+		"items": "{{ITEMS}}",
+		"icon": {
+			"iconType": "YOUTUBE_SHORTS_BRAND_24"
+		}
+	}
+}

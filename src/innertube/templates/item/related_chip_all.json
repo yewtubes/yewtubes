@@ -1,0 +1,17 @@
+{
+	"chipCloudChipRenderer": {
+		"style": {
+			"styleType": "STYLE_DEFAULT"
+		},
+		"text": {
+			"simpleText": "All"
+		},
+		"navigationEndpoint": {
+			"relatedChipCommand": {
+				"targetSectionIdentifier": "sid-wn-chips",
+				"loadCached": true
+			}
+		},
+		"isSelected": true
+	}
+}

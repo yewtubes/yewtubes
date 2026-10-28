@@ -5,9 +5,10 @@
 // related videos, autoplay and the end screen.
 
 import type { Viewer } from "../client/page";
-import { getVideo, isSubscribed, markWatched, reactionOf, relatedVideos } from "../data";
+import { type RelatedFilter, getVideo, isSubscribed, markWatched, reactionOf, relatedShorts, relatedVideos } from "../data";
 import { encodeToken } from "../ids";
 import { topbar } from "./chrome";
+import { shortVars } from "./feeds";
 import { entityKey as protoKey } from "./proto";
 import { type Video, avatarUrl, compact, countLabel, dateText, grouped, responseContext } from "./r";
 import { make } from "./tpl";
@@ -26,12 +27,29 @@ export const likeStatusMutation = (videoId: string, reaction: string | null | un
 
 const relatedLockup = (v: Video, viewer: Viewer) => make(viewer ? "item/video_lockup_compact" : "item/video_lockup_compact_out", { ...baseVars(viewer, `/watch?v=${v.id}`), ...videoVars(v) });
 
-export async function relatedItems(v: Video, viewer: Viewer, offset: number) {
-	const related = await markWatched(viewer, await relatedVideos(v, RELATED_PAGE, offset));
+const RELATED_SHORTS = 10;
+
+export async function relatedItems(v: Video, viewer: Viewer, offset: number, filter: RelatedFilter = "all") {
+	const related = await markWatched(viewer, await relatedVideos(v, RELATED_PAGE, offset, filter, viewer));
 	const items: unknown[] = related.map((r) => relatedLockup(r, viewer));
-	if (related.length === RELATED_PAGE) items.push(make("item/continuation_related", { CONTINUATION: encodeToken({ k: "related", v: v.id, o: offset + RELATED_PAGE }) }));
+	// the first page of All carries a reel shelf of Shorts after its first video, as on YouTube
+	if (!offset && filter === "all") {
+		const shorts = await markWatched(viewer, await relatedShorts(v, RELATED_SHORTS));
+		if (shorts.length) items.splice(Math.min(1, items.length), 0, make("watch/related_shorts_shelf", { ITEMS: shorts.map((s) => make("item/shorts_lockup_related", shortVars(s, viewer))) }));
+	}
+	if (related.length === RELATED_PAGE) items.push(make("item/continuation_related", { CONTINUATION: encodeToken({ k: "related", v: v.id, o: offset + RELATED_PAGE, f: filter }) }));
 	return { items, videos: related };
 }
+
+// signed in, the chips above the list; each but All reloads it (relchip)
+function relatedChips(v: Video, viewer: Viewer) {
+	if (!viewer) return undefined;
+	const chips: [RelatedFilter, string][] = [["channel", `From ${v.channel_title}`], ["related", "Related"], ["foryou", "For you"], ["recent", "Recently uploaded"]];
+	return make("watch/related_chips", {
+		CHIPS: [make("item/related_chip_all", {}), ...chips.map(([f, text]) => make("item/related_chip", { TEXT: text, TOKEN: encodeToken({ k: "relchip", v: v.id, f }) }))],
+	});
+}
+export const RELATED_FILTERS: RelatedFilter[] = ["all", "channel", "related", "foryou", "recent"];
 
 // the values of the watch page's own video
 function pageVars(v: Video, viewer: Viewer, reaction: "like" | "dislike" | null, subscribed: boolean) {
@@ -84,6 +102,7 @@ export async function watchNext(videoId: string, viewer: Viewer, opts: { playlis
 	const page = make(`watch/page_${io}`, {
 		...pageVars(v, viewer, reaction, subscribed),
 		RELATED: related.items,
+		RELATED_HEADER: relatedChips(v, viewer),
 		END_SCREEN: related.videos.slice(0, END_SCREEN).map((r) => make("item/end_screen_video", { ...baseVars(viewer), ...videoVars(r) })),
 		AUTOPLAY: nextVars && make(`watch/autoplay_${io}`, nextVars),
 		AUTOPLAY_OVERLAY: nextVars && make(`watch/autoplay_overlay_${io}`, nextVars),

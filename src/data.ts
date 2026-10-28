@@ -62,11 +62,28 @@ export async function shortVideos(limit: number, offset = 0, excludeId = ""): Pr
 		where ${LISTED} and ${SHORT} and v.id <> ${excludeId} order by v.published_at desc, v.id limit ${limit} offset ${offset}`) as Video[];
 }
 
-export async function relatedVideos(video: Video, limit: number, offset = 0): Promise<Video[]> {
-	// same channel first, then everything else by recency
+// the watch page's list and its chips: "all" (same channel first, then
+// everything else by recency), From <channel> ("channel"), Related (other
+// channels' videos, popular first), For you (what the viewer hasn't
+// watched, home's ranking) and Recently uploaded ("recent")
+export type RelatedFilter = "all" | "channel" | "related" | "foryou" | "recent";
+export async function relatedVideos(video: Video, limit: number, offset = 0, filter: RelatedFilter = "all", viewer?: Viewer): Promise<Video[]> {
+	const user = viewer?.userId ?? null;
+	const [where, order] =
+		filter === "channel" ? [sql`v.channel_id = ${video.channel_id}`, sql`v.published_at desc`]
+		: filter === "related" ? [sql`v.channel_id <> ${video.channel_id}`, sql`v.view_count desc, v.published_at desc`]
+		: filter === "recent" ? [sql`true`, sql`v.published_at desc`]
+		: filter === "foryou" ? [sql`not exists(select 1 from watch_history w where w.user_id = ${user} and w.video_id = v.id)`, sql`ln(v.view_count + 2) - extract(epoch from now() - v.published_at) / 604800 desc`]
+		: [sql`true`, sql`(v.channel_id = ${video.channel_id}) desc, v.published_at desc`];
 	return (await sql`select ${VIDEO_COLUMNS} from videos v join channels c on c.id = v.channel_id
-		where ${LISTED} and v.id <> ${video.id}
-		order by (v.channel_id = ${video.channel_id}) desc, v.published_at desc, v.id limit ${limit} offset ${offset}`) as Video[];
+		where ${LISTED} and not coalesce(${SHORT}, false) and v.id <> ${video.id} and ${where}
+		order by ${order}, v.id limit ${limit} offset ${offset}`) as Video[];
+}
+
+// the reel shelf in the watch page's list: Shorts, the channel's own first
+export async function relatedShorts(video: Video, limit: number): Promise<Video[]> {
+	return (await sql`select ${VIDEO_COLUMNS} from videos v join channels c on c.id = v.channel_id
+		where ${LISTED} and ${SHORT} and v.id <> ${video.id} order by (v.channel_id = ${video.channel_id}) desc, v.published_at desc, v.id limit ${limit}`) as Video[];
 }
 
 export type VideoSearch = { sort?: "relevance" | "date" | "views"; since?: Date; minMs?: number; maxMs?: number };

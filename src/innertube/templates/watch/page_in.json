@@ -946,6 +946,7 @@
 						{
 							"itemSectionRenderer": {
 								"contents": "{{RELATED}}",
+								"header": "{{RELATED_HEADER}}",
 								"sectionIdentifier": "sid-wn-chips",
 								"targetId": "watch-next-feed"
 							}
