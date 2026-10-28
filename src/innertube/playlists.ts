@@ -168,13 +168,13 @@ export async function channelPlaylistLockups(c: Channel, viewer: Viewer, sort: P
 }
 
 // public playlists whose title matches a search; empty ones are left out
-export async function searchPlaylists(query: string, limit: number, offset: number, viewer: Viewer): Promise<Playlist[]> {
+export async function searchPlaylists(query: string, limit: number, offset: number, viewer: Viewer, ownerUserId?: string): Promise<Playlist[]> {
 	const like = `%${query.trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 	const rows = await sql`select * from (select p.*, c.id as owner_channel, c.title as owner_title, c.handle as owner_handle,
 		(select count(*)::int from playlist_items i join videos v on v.id = i.video_id where i.playlist_id = p.id and ${PLAYABLE(viewer)}) as video_count,
 		(select i.video_id from playlist_items i join videos v on v.id = i.video_id where i.playlist_id = p.id and ${PLAYABLE(viewer)} order by i.position limit 1) as first_video
 		from playlists p join channels c on c.user_id = p.user_id
-		where p.kind = 'user' and p.visibility = 'public' and p.title ilike ${like}) x
+		where p.kind = 'user' and p.visibility = 'public' and p.title ilike ${like} and (${!ownerUserId} or p.user_id = ${ownerUserId ?? "0"})) x
 		where x.first_video is not null order by x.updated_at desc, x.id limit ${limit} offset ${offset}`;
 	return rows.map((p: Playlist) => ({ ...p, user_id: String(p.user_id) }));
 }

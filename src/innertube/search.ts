@@ -12,7 +12,7 @@ import { shortVars } from "./feeds";
 import { playlistSearchItem, searchPlaylists } from "./playlists";
 import { decode, encode, fromBase64 } from "./proto";
 import { PUBLIC_ORIGIN } from "../config";
-import { type Channel, type Video, ago, compactViews, countLabel, responseContext } from "./r";
+import { type Channel, type Video, ago, compact, compactViews, countLabel, responseContext, shortAgo } from "./r";
 import { ApiError, route } from "./router";
 import { channelRowButton, subscribeEntities } from "./subscribe";
 import { make, type Vars } from "./tpl";
@@ -165,6 +165,29 @@ function videoItem(v: Video, viewer: Viewer) {
 	const item = make(`item/video_search_${viewer ? "in" : "out"}`, vars);
 	if (!vars.SNIPPET) delete item.videoRenderer.detailedMetadataSnippets;
 	return item;
+}
+
+// a channel's Search tab: its videos and playlists matching the query, each
+// in a section of its own as YouTube sends them, 30 videos at a time; a
+// video carries the start of its description (descriptionSnippet) in place
+// of the search page's snippet
+const CHANNEL_SEARCH_PAGE = 30;
+function channelSearchVideo(v: Video, viewer: Viewer) {
+	// the short forms: "4.8M", "12y ago"
+	const vars = { ...videoRendererVars(v, viewer), VIEWS_SHORT: v.view_count ? compact(v.view_count) : "No views", PUBLISHED_FULL: shortAgo(v.published_at ?? v.created_at) };
+	const { detailedMetadataSnippets: _, ...rest } = make(`item/video_search_${viewer ? "in" : "out"}`, vars).videoRenderer;
+	const text = (v.description ?? "").trim();
+	const { videoId, thumbnail, title, ...more } = rest;
+	return { videoRenderer: { videoId, thumbnail, title, ...(text ? { descriptionSnippet: { runs: [{ text: text.length > 200 ? `${text.slice(0, 200).trimEnd()}...` : text }] } } : {}), ...more } };
+}
+export async function channelSearchSections(c: Channel, viewer: Viewer, query: string, offset: number): Promise<unknown[]> {
+	const videos = await searchVideos(query, CHANNEL_SEARCH_PAGE + 1, offset, { channelId: c.id });
+	const items: unknown[] = videos.slice(0, CHANNEL_SEARCH_PAGE).map((v) => channelSearchVideo(v, viewer));
+	// the channel's matching playlists among the first page's videos
+	if (!offset) items.splice(Math.min(items.length, 14), 0, ...(await Promise.all((await searchPlaylists(query, 10, 0, viewer, c.user_id)).map((p) => playlistSearchItem(p, viewer)))));
+	const sections: unknown[] = items.map((item) => ({ itemSectionRenderer: { contents: [item] } }));
+	if (videos.length > CHANNEL_SEARCH_PAGE) sections.push(make("item/continuation", { CONTINUATION: encodeToken({ k: "chsearch", c: c.id, q: query, o: offset + CHANNEL_SEARCH_PAGE }) }));
+	return sections;
 }
 
 async function channelItem(c: Channel, viewer: Viewer, query: string, mutations: unknown[]) {

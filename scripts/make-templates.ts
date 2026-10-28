@@ -1930,6 +1930,22 @@ function featuredChannels() {
 }
 
 // ======================================================================
+// a channel's Search tab with nothing found: YouTube's message, the query
+// quoted (each result is otherwise its own itemSectionRenderer of a search
+// videoRenderer or playlistRenderer, which channel.ts builds from the search
+// templates)
+function channelSearch() {
+	const page = pageVar(body("fgteev-search-none", /^001-/));
+	const tab = page.contents.twoColumnBrowseResultsRenderer.tabs.find((t: any) => t.expandableTabRenderer).expandableTabRenderer;
+	const content = clean(tab.content);
+	const runs = find(content, "messageRenderer").text.runs;
+	const query: string = tab.expandedText;
+	if (runs[1].text !== query) throw new Error("search message changed");
+	runs[1].text = "{{QUERY}}";
+	save("channel/search_empty", content, [query]);
+}
+
+// ======================================================================
 // the Save sheet (get_panel PAadd_to_playlist): one toggle row per playlist
 // and New playlist in the footer
 function saveSheet() {
@@ -2668,6 +2684,7 @@ const steps: [string, () => void][] = [
 	["studio-menu", studioMenu],
 	["shorts", shorts],
 	["featured-channels", featuredChannels],
+	["channel-search", channelSearch],
 ];
 for (const [name, fn] of steps) {
 	if (only.length && !only.includes(name)) continue;

@@ -1,0 +1,29 @@
+{
+	"sectionListRenderer": {
+		"contents": [
+			{
+				"itemSectionRenderer": {
+					"contents": [
+						{
+							"messageRenderer": {
+								"text": {
+									"runs": [
+										{
+											"text": "This channel has no content that matched \""
+										},
+										{
+											"text": "{{QUERY}}"
+										},
+										{
+											"text": ".\""
+										}
+									]
+								}
+							}
+						}
+					]
+				}
+			}
+		]
+	}
+}

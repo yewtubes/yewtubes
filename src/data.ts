@@ -88,7 +88,7 @@ export async function relatedShorts(video: Video, limit: number): Promise<Video[
 
 // shorts: only Shorts, or none of them; minSide: the frame's shorter side
 // (HD 720, 4K 2160); unwatchedBy: leave out what this user has watched
-export type VideoSearch = { sort?: "relevance" | "date" | "views"; since?: Date; minMs?: number; maxMs?: number; shorts?: "only" | "exclude"; minSide?: number; unwatchedBy?: string };
+export type VideoSearch = { sort?: "relevance" | "date" | "views"; since?: Date; minMs?: number; maxMs?: number; shorts?: "only" | "exclude"; minSide?: number; unwatchedBy?: string; channelId?: string };
 
 export async function searchVideos(query: string, limit: number, offset: number, opts: VideoSearch = {}): Promise<Video[]> {
 	const q = query.trim();
@@ -100,8 +100,10 @@ export async function searchVideos(query: string, limit: number, offset: number,
 	const shape = opts.shorts === "only" ? sql`and coalesce(${SHORT}, false)` : opts.shorts === "exclude" ? sql`and not coalesce(${SHORT}, false)` : sql``;
 	const side = opts.minSide ? sql`and least(v.width, v.height) >= ${opts.minSide}` : sql``;
 	const unwatched = opts.unwatchedBy ? sql`and not exists(select 1 from watch_history w where w.user_id = ${opts.unwatchedBy} and w.video_id = v.id)` : sql``;
+	// a channel's Search tab: its own videos, matched on their own text
+	const match = opts.channelId ? sql`v.channel_id = ${opts.channelId} and (v.search @@ plainto_tsquery('simple', ${q}) or v.title ilike ${like})` : sql`(v.search @@ plainto_tsquery('simple', ${q}) or v.title ilike ${like} or c.title ilike ${like})`;
 	return (await sql`select ${VIDEO_COLUMNS} from videos v join channels c on c.id = v.channel_id
-		where ${LISTED} and (v.search @@ plainto_tsquery('simple', ${q}) or v.title ilike ${like} or c.title ilike ${like}) ${since} ${min} ${max} ${shape} ${side} ${unwatched}
+		where ${LISTED} and ${match} ${since} ${min} ${max} ${shape} ${side} ${unwatched}
 		order by ${order}, v.id limit ${limit} offset ${offset}`) as Video[];
 }
 

@@ -15,8 +15,9 @@ import { channelsPage, channelsReload, playlistsPage, playlistsReload, youPage }
 import { playlistBrowse } from "./playlists";
 import { type Channel, browseEndpoint, responseContext, runs } from "./r";
 import { ApiError, route } from "./router";
+import { channelSearchSections } from "./search";
 import { recordMiss } from "../diagnostics";
-import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelsPanel, playlistGridItems, playlistSortParams, channelTab, tabParams, videoGridItems, videoGridReload } from "./channel";
+import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelSearchPath, channelSearchTarget, channelsPanel, playlistGridItems, playlistSortParams, channelTab, tabParams, videoGridItems, videoGridReload } from "./channel";
 import { SETTINGS_PAGES, SETTINGS_PATHS, settingsPage } from "./settings";
 import { signInUrl } from "./vars";
 import { CREATE_POST_PARAMS } from "./post-composer";
@@ -25,7 +26,8 @@ import { postCommand, postIdFromParams, postPage, postParams, postsContinuation 
 import { sql } from "../db";
 
 // the browse command for a channel tab, as the tab strip's endpoints have it
-function channelCommand(c: Channel, tab: ChannelTab) {
+function channelCommand(c: Channel, tab: ChannelTab, query?: string) {
+	if (tab === "search" && query) return { commandMetadata: { webCommandMetadata: { url: channelSearchPath(c, query), webPageType: "WEB_PAGE_TYPE_CHANNEL", rootVe: 3611, apiUrl: "/youtubei/v1/browse" } }, browseEndpoint: { browseId: c.id, params: tabParams("search"), canonicalBaseUrl: `/@${c.handle}`, query } };
 	return { commandMetadata: { webCommandMetadata: { url: `/@${c.handle}${tab === "featured" ? "" : `/${tab}`}`, webPageType: "WEB_PAGE_TYPE_CHANNEL", rootVe: 3611, apiUrl: "/youtubei/v1/browse" } }, browseEndpoint: { browseId: c.id, ...(tab === "featured" ? {} : { params: tabParams(tab) }), canonicalBaseUrl: `/@${c.handle}` } };
 }
 
@@ -96,8 +98,8 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 		const c = await getChannel({ id: browseId });
 		if (!c) return undefined;
 		const tab = channelTab(params);
-		const r = await channelPage(c, tab, viewer, tab === "posts" ? { openComposer: createDialogFromParams(params), scheduledPosts: scheduledPostsFromParams(params) } : tab === "playlists" ? { playlistSort: playlistSortFromParams(params) } : {});
-		return { kind: "channel", title: c.title, url: r.path, command: channelCommand(c, tab), response: r.response };
+		const r = await channelPage(c, tab, viewer, tab === "posts" ? { openComposer: createDialogFromParams(params), scheduledPosts: scheduledPostsFromParams(params) } : tab === "playlists" ? { playlistSort: playlistSortFromParams(params) } : tab === "search" ? { query } : {});
+		return { kind: "channel", title: c.title, url: r.path, command: channelCommand(c, tab, query?.trim()), response: r.response };
 	}
 	return undefined;
 }
@@ -118,10 +120,11 @@ async function continuation(token: string, viewer: Viewer) {
 		if (!viewer) throw new ApiError(401, "Sign in to do this.", "authError");
 		return t.k === "plfeed" ? playlistsReload(viewer, { k: "plfeed", s: Number(t.s) || 0, f: t.f }) : channelsReload(viewer, Number(t.s) || 0);
 	}
-	else if ((t.k === "chvideos" || t.k === "about" || t.k === "chchannels" || t.k === "chplaylists") && t.c) {
+	else if ((t.k === "chvideos" || t.k === "about" || t.k === "chchannels" || t.k === "chplaylists" || t.k === "chsearch") && t.c) {
 		const c = await getChannel({ id: t.c });
 		if (!c) throw new ApiError(404, "Not found");
 		if (t.k === "about") return { responseContext: responseContext(viewer), ...(await aboutPanel(c, viewer)) };
+		if (t.k === "chsearch") return { responseContext: responseContext(viewer), onResponseReceivedActions: [appendAction(await channelSearchSections(c, viewer, String(t.q ?? ""), Number(t.o) || 0), channelSearchTarget(c))] };
 		if (t.k === "chplaylists") {
 			const r = await playlistGridItems(c, viewer, String(t.s) === "lad" ? "lad" : "dd", Number(t.o) || 0);
 			return { responseContext: responseContext(viewer), onResponseReceivedActions: [appendAction(r.items, r.target)] };
@@ -157,7 +160,7 @@ route("browse", async ({ body, viewer }) => {
 
 // ---- direct page loads ----
 
-export async function resolvePath(url: URL): Promise<{ browseId: string; params?: string } | undefined> {
+export async function resolvePath(url: URL): Promise<{ browseId: string; params?: string; query?: string } | undefined> {
 	const p = url.pathname.replace(/\/$/, "") || "/";
 	const feeds: Record<string, string> = { "/": "FEwhat_to_watch", "/feed/subscriptions": "FEsubscriptions", "/feed/subscriptions/shorts": "FEsubscriptions_shorts", "/feed/history": "FEhistory", "/feed/you": "FElibrary", "/feed/library": "FElibrary", "/feed/playlists": "FEplaylist_aggregation", "/feed/channels": "FEchannels" };
 	if (feeds[p]) return { browseId: feeds[p] };
@@ -171,7 +174,7 @@ export async function resolvePath(url: URL): Promise<{ browseId: string; params?
 		const [found] = await sql`select id, channel_id from posts where id = ${post[1]} and deleted_at is null`;
 		return found ? { browseId: "FEpost_detail", params: postParams(found.id, found.channel_id) } : undefined;
 	}
-	const m = /^\/(?:@([A-Za-z0-9._-]{3,30})|channel\/(UC[A-Za-z0-9_-]{22}))(?:\/(featured|videos|shorts|playlists|posts|community))?$/.exec(decodeURIComponent(p));
+	const m = /^\/(?:@([A-Za-z0-9._-]{3,30})|channel\/(UC[A-Za-z0-9_-]{22}))(?:\/(featured|videos|shorts|playlists|posts|community|search))?$/.exec(decodeURIComponent(p));
 	if (m) {
 		const c = await getChannel(m[1] ? { handle: m[1] } : { id: m[2] });
 		if (!c) return undefined;
@@ -180,6 +183,10 @@ export async function resolvePath(url: URL): Promise<{ browseId: string; params?
 		if (tab === "posts" && url.searchParams.get("show_create_dialog") === "1") return { browseId: c.id, params: CREATE_POST_PARAMS };
 		if (tab === "posts" && url.searchParams.get("view") === "scheduled") return { browseId: c.id, params: withScheduledPosts(tabParams("posts")) };
 		if (tab === "playlists" && url.searchParams.get("sort") === "lad") return { browseId: c.id, params: playlistSortParams("lad") };
+		if (tab === "search") {
+			const query = url.searchParams.get("query")?.trim();
+			return query ? { browseId: c.id, params: tabParams("search"), query } : { browseId: c.id };
+		}
 		return { browseId: c.id, params: tab ? tabParams(tab as ChannelTab) : undefined };
 	}
 	return undefined;
@@ -189,7 +196,7 @@ export async function browsePage(url: URL, viewer: Viewer): Promise<PageData | R
 	const target = await resolvePath(url);
 	if (!target) return undefined;
 	if (!viewer && (target.browseId === "FEplaylist_aggregation" || target.browseId === "FEchannels" || target.browseId in SETTINGS_PAGES)) return Response.redirect(signInUrl(url.pathname), 302);
-	const r = await buildBrowse(target.browseId, target.params, viewer);
+	const r = await buildBrowse(target.browseId, target.params, viewer, target.query);
 	if (!r) return undefined;
 	return {
 		kind: r.kind,
@@ -211,7 +218,7 @@ route("navigation/resolve_url", async ({ body }) => {
 	}
 	const target = await resolvePath(u);
 	if (target) {
-		const r = await buildBrowse(target.browseId, target.params, null);
+		const r = await buildBrowse(target.browseId, target.params, null, target.query);
 		if (r) return { endpoint: r.command };
 	}
 	if (u.pathname === "/watch" && u.searchParams.get("v")) return { endpoint: { commandMetadata: { webCommandMetadata: { url: u.pathname + u.search, webPageType: "WEB_PAGE_TYPE_WATCH", rootVe: 3832 } }, watchEndpoint: { videoId: u.searchParams.get("v") } } };
