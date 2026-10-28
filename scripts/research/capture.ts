@@ -3,14 +3,13 @@
 //   bun scripts/research/capture.ts <name> <url> [--narrow] [--cookies file.txt]
 //   STEPS=/abs/path/steps.ts runs extra interactions after load.
 //
-// --cookies loads a Netscape cookie file (an authorized test session). In that
-// mode the account must not change: every InnerTube POST that is not a known
-// read is aborted, as are watch-history/telemetry pings, cookie rotation and
-// uploads. ALLOW_WRITES=method,method lets a step perform a specific write.
+// --cookies loads a Netscape cookie file (an authorized test session); the
+// session is then read-only (live.ts).
 import { chromium } from "playwright-core";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
+import { liveContext } from "./live";
 
 const [name, url] = process.argv.slice(2);
 const narrow = process.argv.includes("--narrow");
@@ -19,52 +18,12 @@ const out = join("captures", name);
 mkdirSync(join(out, "bodies"), { recursive: true });
 const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined;
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", proxy, args: ["--autoplay-policy=no-user-gesture-required"] });
-const ctx = await browser.newContext({
-	// requests from YouTube's service worker would bypass the route filter below
-	...(cookieFile ? { serviceWorkers: "block" as const } : {}),
+const { ctx, blocked } = await liveContext(browser, cookieFile, {
 	// a HAR would carry the session's cookies; not recorded for signed-in captures
 	...(cookieFile ? {} : { recordHar: { path: join(out, "capture.har"), content: "embed" as const } }),
 	viewport: narrow ? { width: 412, height: 860 } : { width: 1400, height: 900 },
-	locale: "en-US",
-	userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
 	recordVideo: { dir: join(out, "video"), size: narrow ? { width: 412, height: 860 } : { width: 1400, height: 900 } },
 });
-if (cookieFile) {
-	const cookies = readFileSync(cookieFile, "utf8")
-		.split("\n")
-		.map((l) => l.split("\t"))
-		.filter((p) => p.length >= 7 && !p[0].startsWith("# "))
-		.map(([domain, , path, secure, expires, name, value]) => ({
-			name,
-			value,
-			domain: domain.replace(/^#HttpOnly_/, ""),
-			path,
-			secure: secure === "TRUE",
-			httpOnly: domain.startsWith("#HttpOnly_"),
-			expires: Number(expires) || -1,
-			sameSite: (name.startsWith("__Secure-") || name.startsWith("__Host-") ? "None" : "Lax") as "None" | "Lax",
-		}));
-	await ctx.addCookies(cookies);
-}
-// InnerTube methods that only read
-const READS = /^(browse|next|player|search|guide|get_watch|get_panel|account\/account_menu|account\/accounts_list|notification\/get_unseen_count|notification\/get_notification_menu|share\/get_share_panel|att\/get|reel\/reel_item_watch|reel\/reel_watch_sequence|navigation\/resolve_url|playlist\/get_add_to_playlist|comment\/get_comment.*|creator\/(get|list|search|fetch)_.*|ars\/(get|list)_.*|updated_metadata|music\/get_.*|yta_web\/.*|creator_music\/(get|list|search)_.*|get_survey|promotions\/get_.*|feature_eligibility\/check_.*|creator\/check_.*|channel_edit\/get_.*|upload\/feedback)$/;
-const allowWrites = new Set((process.env.ALLOW_WRITES ?? "").split(",").filter(Boolean));
-const blocked: string[] = [];
-if (cookieFile)
-	await ctx.route("**/*", (route: any) => {
-		const req = route.request();
-		const u = new URL(req.url());
-		const m = /\/youtubei\/v1\/(.+)$/.exec(u.pathname);
-		const deny =
-			/(^|\.)accounts\.(google|youtube)\.com$|^upload\.youtube\.com$/.test(u.hostname) ||
-			(/(^|\.)youtube\.com$/.test(u.hostname) && /^\/(api\/stats\/|ptracking|generate_204)/.test(u.pathname)) ||
-			(m && req.method() === "POST" && !READS.test(m[1]) && !allowWrites.has(m[1]));
-		if (deny) {
-			blocked.push(`${req.method()} ${u.hostname}${u.pathname}`);
-			return route.abort();
-		}
-		return route.continue();
-	});
 const page = await ctx.newPage();
 // InnerTube request bodies are gzipped
 const postBody = (req: any) => {
