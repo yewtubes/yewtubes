@@ -47,14 +47,16 @@ const io = (viewer: Viewer) => (viewer ? "in" : "out");
 
 // a channel's published posts, newest first, or its scheduled ones (only
 // for the channel itself), soonest first; a post by id is there for everyone
-// once published and for its channel before
+// once published and for its channel before. What a channel posted in
+// another channel's Community (community_channel_id) stays out of its own
+// Posts tab
 export type PostsView = "published" | "scheduled";
 async function loadPosts(where: { channel?: string; id?: string }, viewer: Viewer, offset = 0, limit = POSTS_PAGE, view: PostsView = "published"): Promise<Post[]> {
 	const own = viewer?.channelId ?? "";
 	const shown = where.id ? sql`(p.published_at <= now() or p.channel_id = ${own})` : view === "scheduled" ? sql`p.published_at > now() and p.channel_id = ${own}` : sql`p.published_at <= now()`;
 	return (await sql`select p.id, p.channel_id, p.text, p.attachment, p.like_count, p.comment_count, p.created_at, p.published_at, p.edited_at,
 		(select kind from post_reactions r where r.post_id = p.id and r.user_id = ${viewer?.userId ?? "0"}) as reaction
-		from posts p where p.deleted_at is null and ${where.id ? sql`p.id = ${where.id}` : sql`p.channel_id = ${where.channel ?? ""}`} and ${shown}
+		from posts p where p.deleted_at is null and ${where.id ? sql`p.id = ${where.id}` : sql`p.channel_id = ${where.channel ?? ""} and p.community_channel_id is null`} and ${shown}
 		order by ${view === "scheduled" ? sql`p.published_at asc` : sql`p.published_at desc`}, p.id limit ${limit} offset ${offset}`) as Post[];
 }
 
@@ -64,8 +66,8 @@ export async function getPost(id: string, viewer: Viewer): Promise<Post | undefi
 }
 
 export const isScheduled = (p: Pick<Post, "published_at">) => new Date(p.published_at).getTime() > Date.now();
-export const hasPosts = async (channelId: string) => (await sql`select 1 from posts where channel_id = ${channelId} and deleted_at is null and published_at <= now() limit 1`).length > 0;
-const hasScheduled = async (channelId: string) => (await sql`select 1 from posts where channel_id = ${channelId} and deleted_at is null and published_at > now() limit 1`).length > 0;
+export const hasPosts = async (channelId: string) => (await sql`select 1 from posts where channel_id = ${channelId} and community_channel_id is null and deleted_at is null and published_at <= now() limit 1`).length > 0;
+const hasScheduled = async (channelId: string) => (await sql`select 1 from posts where channel_id = ${channelId} and community_channel_id is null and deleted_at is null and published_at > now() limit 1`).length > 0;
 
 // when a scheduled post goes up, as its channel sees it on the Scheduled section
 export const scheduledText = (d: Date) => `Scheduled for ${new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })} UTC`;

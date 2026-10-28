@@ -3,6 +3,8 @@
 // grids with their Latest/Popular/Oldest chips, the Playlists grid and the
 // About panel.
 
+import { communityButton } from "./community";
+import { communityOpen } from "./community-settings";
 import type { Viewer } from "../client/page";
 import { PUBLIC_ORIGIN } from "../config";
 import { channelSubscriptions, channelVideos, channelsInOrder, getVideo, isSubscribed, markWatched } from "../data";
@@ -259,11 +261,11 @@ export async function channelHeader(c: Channel, viewer: Viewer, vars: Vars) {
 	if (!c.description) delete ph.description;
 	// signed in: the real subscribe button (or the owner's buttons) in place of the sign-in modal
 	const action = await subscribeAction(c, viewer, vars);
-	if (action) {
-		ph.actions.flexibleActionsViewModel.actionsRows[0].actions = action.actions;
-		return { header: { pageHeaderRenderer: header }, mutations: action.mutations };
-	}
-	return { header: { pageHeaderRenderer: header }, mutations: [] as unknown[] };
+	const row = ph.actions.flexibleActionsViewModel.actionsRows[0];
+	if (action) row.actions = action.actions;
+	// the Community button while Viewer posts are on
+	if (communityOpen(c)) row.actions.push(communityButton(c));
+	return { header: { pageHeaderRenderer: header }, mutations: action?.mutations ?? ([] as unknown[]) };
 }
 
 export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, opts: { openComposer?: boolean; scheduledPosts?: boolean; playlistSort?: PlaylistSort; query?: string } = {}) {

@@ -1946,6 +1946,59 @@ function channelSearch() {
 }
 
 // ======================================================================
+// a channel's Community (browse FEcommunity_page, /@handle/community): the
+// page header (avatar, "NAME's Community", recent posters' avatars and
+// "Public", the description), the Top / Newest / Creator posts chips that
+// reload the posts by continuation, the post sections (community.ts, from the
+// post templates) and, signed out, the composer row that can't post
+function community() {
+	const page = pageVar(body("fgteev-community", /^001-/));
+	const owner: string = find(page.header, "browseEndpoint").browseId;
+	const name: string = page.header.pageHeaderRenderer.pageTitle;
+	const header = clean(structuredClone(page.header));
+	const ph = header.pageHeaderRenderer.content.pageHeaderViewModel;
+	header.pageHeaderRenderer.pageTitle = "{{CHANNEL_NAME}}";
+	ph.title.dynamicTextViewModel.text.content = "{{TITLE}}";
+	wholeToken(ph.image, "sources", "AVATAR");
+	const stack = find(ph.metadata, "avatarStackViewModel");
+	const avatar = structuredClone(stack.avatars[0]);
+	wholeToken(avatar, "sources", "AVATAR_48");
+	save("community/stack_avatar", avatar);
+	stack.avatars = "{{AVATARS}}";
+	if (stack.text.content !== "Public") throw new Error("community visibility changed");
+	const desc = ph.description.descriptionPreviewViewModel;
+	const text: string = desc.description.content;
+	desc.description.content = "{{DESCRIPTION}}";
+	desc.rendererContext.accessibilityContext.label = "{{DESCRIPTION_LABEL}}";
+	find(desc, "messageRenderer").text.runs[0].text = "{{DESCRIPTION}}";
+	const micro = clean(structuredClone(page.microformat));
+	micro.microformatDataRenderer.title = "{{TITLE_PLAIN}}";
+	wholeToken(micro, "thumbnails", "AVATAR_68");
+
+	const tab = clean(structuredClone(page.contents.twoColumnBrowseResultsRenderer.tabs[0]));
+	const list = tab.tabRenderer.content.sectionListRenderer;
+	list.contents = "{{SECTIONS}}";
+	const names = ["TOP", "NEWEST", "CREATOR"];
+	const chips = list.header.feedFilterChipBarRenderer.contents;
+	if (chips.map((c: any) => c.chipCloudChipRenderer.text.simpleText).join() !== "Top,Newest,Creator posts") throw new Error("community chips changed");
+	chips.forEach((c: any, i: number) => {
+		c.chipCloudChipRenderer.navigationEndpoint.continuationCommand.token = `{{CHIP_${names[i]}}}`;
+		c.chipCloudChipRenderer.isSelected = `{{${names[i]}_SELECTED}}`;
+	});
+	const pairs: [string, string][] = [[name, "CHANNEL_NAME"], [owner, "CHANNEL_ID"]];
+	save("community/page", tokenize({ contents: { twoColumnBrowseResultsRenderer: { tabs: [tab] } }, header, microformat: micro, toolbarMenu: clean(page.toolbarMenu) }, pairs, [[owner, "CHANNEL_ID"]]), [owner, name]);
+
+	// the composer row of the first section as a viewer who can't post gets it
+	const first = page.contents.twoColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].itemSectionRenderer;
+	save("community/composer_out", clean(first.header), [owner]);
+
+	// a scroll continuation: the posts appended, with the page's header again
+	// and an empty section in continuationContents
+	const [[, more]] = bodies("fgteev-community", /005-.*browse\.resp$/);
+	save("community/continuation", { contents: clean(more.contents), continuationContents: clean(more.continuationContents) }, [owner]);
+}
+
+// ======================================================================
 // the Save sheet (get_panel PAadd_to_playlist): one toggle row per playlist
 // and New playlist in the footer
 function saveSheet() {
@@ -2695,6 +2748,7 @@ const steps: [string, () => void][] = [
 	["shorts", shorts],
 	["featured-channels", featuredChannels],
 	["channel-search", channelSearch],
+	["community", community],
 ];
 for (const [name, fn] of steps) {
 	if (only.length && !only.includes(name)) continue;

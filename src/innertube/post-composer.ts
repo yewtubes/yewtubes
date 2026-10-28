@@ -28,6 +28,8 @@ import { type Attachment, getPost, isScheduled, postRenderer, postThread, schedu
 import { type Channel, type Video, avatarThumbnails, responseContext, runs, serviceEndpoint } from "./r";
 import { ApiError, route } from "./router";
 import { tabParams } from "./channel";
+import { communityThread } from "./community";
+import { mayPostInCommunity } from "./community-settings";
 import { withScheduledPosts } from "./proto";
 import { videoRendererVars } from "./search";
 import { make } from "./tpl";
@@ -187,12 +189,14 @@ const scheduledToast = (c: Channel, at: Date) => ({
 	},
 });
 
-// the create dialog for the viewer's own channel
-export function composer(c: Channel, viewer: NonNullable<Viewer>) {
+// the create dialog for the viewer's own channel; in another channel's
+// Community (`community`, community.ts) a viewer posts text and images, with
+// the Community's own prompt and no scheduling
+export function composer(c: Channel, viewer: NonNullable<Viewer>, community?: Channel) {
 	const avatar = avatarThumbnails(c.id, [40, 88]);
-	const params = encodeToken({ k: "cpost", u: viewer.userId, ch: c.id });
-	const placeholder = runs("Share a sneak peek of your next video");
-	return {
+	const params = encodeToken({ k: "cpost", u: viewer.userId, ch: c.id, ...(community ? { cm: community.id } : {}) });
+	const placeholder = runs(community ? "What's on your mind?" : "Share a sneak peek of your next video");
+	const dialog = {
 		backstagePostDialogRenderer: {
 			purpose: "BACKSTAGE_POST_DIALOG_PURPOSE_CREATE",
 			authorThumbnail: avatar,
@@ -252,6 +256,8 @@ export function composer(c: Channel, viewer: NonNullable<Viewer>) {
 			charLimit: POST_TEXT_LIMIT,
 		},
 	};
+	if (community) for (const k of ["imagePollButton", "pollButton", "quizButton", "videoLinkButton", "postOptionsMenu"]) delete (dialog.backstagePostDialogRenderer as Record<string, unknown>)[k];
+	return dialog;
 }
 
 // the edit dialog of a post's Edit menu item: the text only (YouTube keeps a
@@ -373,16 +379,21 @@ route("backstage/get_post_video_preview", async ({ body, viewer }) => {
 route(
 	"backstage/create_post",
 	async ({ body, viewer }) => {
-		const t = decodeToken<{ k: string; u: string; ch: string }>(body.createBackstagePostParams);
+		const t = decodeToken<{ k: string; u: string; ch: string; cm?: string }>(body.createBackstagePostParams);
 		if (!viewer || t?.k !== "cpost" || t.u !== viewer.userId || t.ch !== viewer.channelId) throw new ApiError(400, "Invalid post parameters");
 		const c = await getChannel({ id: viewer.channelId });
 		if (!c) throw new ApiError(404, "Not found");
+		// a post from a Community page, while the viewer may still post there
+		// (the channel's own goes up as its post, a viewer's into the Community)
+		const community = t.cm ? await getChannel({ id: t.cm }) : undefined;
+		if (t.cm && (!community || !(await mayPostInCommunity(community, viewer)))) return failure(viewer, "You can't post in this Community.");
 		const text = str(body.commentText).trim();
 		if ([...text].length > POST_TEXT_LIMIT) return failure(viewer, "Your post is too long.");
-		const at = scheduleTime(body.scheduledPublishTimeSec);
+		const at = community ? undefined : scheduleTime(body.scheduledPublishTimeSec);
 		if (typeof at === "string") return failure(viewer, at);
 		const read = await readAttachment(body, viewer);
 		if (typeof read === "string") return failure(viewer, read);
+		if (community && read.attachment && !("images" in read.attachment)) return failure(viewer, "Posts in a Community can have text and images.");
 		if (!text && !read.attachment) return failure(viewer, "Write something or add an attachment.");
 		if (!(await rateLimit(`post:${viewer.userId}`, POSTS_PER_DAY, 86_400))) return failure(viewer, "You've reached today's post limit. Try again in 24 hours.");
 		const id = newPostId();
@@ -390,11 +401,11 @@ route(
 			mkdirSync(postMediaDir(id), { recursive: true });
 			for (const img of read.images) renameSync(join(PENDING, img.f), join(postMediaDir(id), img.f));
 		}
-		await sql`insert into posts (id, channel_id, text, attachment, published_at) values (${id}, ${c.id}, ${text}, ${read.attachment ? JSON.stringify(read.attachment) : null}::text::jsonb, ${at ?? new Date()})`;
+		await sql`insert into posts (id, channel_id, text, attachment, published_at, community_channel_id) values (${id}, ${c.id}, ${text}, ${read.attachment ? JSON.stringify(read.attachment) : null}::text::jsonb, ${at ?? new Date()}, ${community && community.id !== c.id ? community.id : null})`;
 		// a scheduled post waits in the Scheduled section; the composer just clears
 		if (at) return { responseContext: responseContext(viewer), actions: [scheduledToast(c, at)] };
 		const post = await getPost(id, viewer);
-		const thread = await postThread(post!, c, viewer);
+		const thread = community ? await communityThread(post!, c, community, viewer) : await postThread(post!, c, viewer);
 		return { responseContext: responseContext(viewer), actions: [{ addBackstagePostAction: { renderer: thread } }] };
 	},
 	{ mutation: true },

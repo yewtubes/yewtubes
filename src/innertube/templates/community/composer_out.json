@@ -1,0 +1,54 @@
+{
+	"commentsHeaderRenderer": {
+		"createRenderer": {
+			"backstagePostDialogRenderer": {
+				"placeholderText": {
+					"accessibility": {
+						"accessibilityData": {
+							"label": "What's on your mind?"
+						}
+					},
+					"simpleText": "What's on your mind?"
+				},
+				"isIneligibleForCommunityPagePostCreation": true
+			}
+		},
+		"isBackstageContent": true,
+		"showNewPostCreationEntryPoint": true,
+		"postHeaderOnTap": {
+			"openPopupAction": {
+				"popup": {
+					"notificationActionRenderer": {
+						"responseText": {
+							"simpleText": "Posting isn't available because you have a supervised account"
+						},
+						"actionButton": {
+							"buttonRenderer": {
+								"text": {
+									"runs": [
+										{
+											"text": "Learn more"
+										}
+									]
+								},
+								"command": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"url": "//support.google.com/youtube/answer/9409631?hl=en",
+											"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+											"rootVe": 83769
+										}
+									},
+									"urlEndpoint": {
+										"url": "//support.google.com/youtube/answer/9409631?hl=en"
+									}
+								}
+							}
+						}
+					}
+				},
+				"popupType": "TOAST"
+			}
+		}
+	}
+}

@@ -1,0 +1,21 @@
+{
+	"contents": {
+		"twoColumnBrowseResultsRenderer": {}
+	},
+	"continuationContents": {
+		"sectionListContinuation": {
+			"contents": [
+				{
+					"itemSectionRenderer": {
+						"header": {
+							"commentsHeaderRenderer": {
+								"isBackstageContent": true
+							}
+						}
+					}
+				}
+			],
+			"disablePullToRefresh": true
+		}
+	}
+}

@@ -1,0 +1,384 @@
+{
+	"contents": {
+		"twoColumnBrowseResultsRenderer": {
+			"tabs": [
+				{
+					"tabRenderer": {
+						"selected": true,
+						"content": {
+							"sectionListRenderer": {
+								"contents": "{{SECTIONS}}",
+								"header": {
+									"feedFilterChipBarRenderer": {
+										"contents": [
+											{
+												"chipCloudChipRenderer": {
+													"text": {
+														"simpleText": "Top"
+													},
+													"navigationEndpoint": {
+														"commandMetadata": {
+															"webCommandMetadata": {
+																"sendPost": true,
+																"apiUrl": "/youtubei/v1/browse"
+															}
+														},
+														"continuationCommand": {
+															"token": "{{CHIP_TOP}}",
+															"request": "CONTINUATION_REQUEST_TYPE_BROWSE",
+															"command": {
+																"showReloadUiCommand": {
+																	"targetId": "community-page-posts-container"
+																}
+															}
+														}
+													},
+													"isSelected": "{{TOP_SELECTED}}"
+												}
+											},
+											{
+												"chipCloudChipRenderer": {
+													"text": {
+														"simpleText": "Newest"
+													},
+													"navigationEndpoint": {
+														"commandMetadata": {
+															"webCommandMetadata": {
+																"sendPost": true,
+																"apiUrl": "/youtubei/v1/browse"
+															}
+														},
+														"continuationCommand": {
+															"token": "{{CHIP_NEWEST}}",
+															"request": "CONTINUATION_REQUEST_TYPE_BROWSE",
+															"command": {
+																"showReloadUiCommand": {
+																	"targetId": "community-page-posts-container"
+																}
+															}
+														}
+													},
+													"isSelected": "{{NEWEST_SELECTED}}"
+												}
+											},
+											{
+												"chipCloudChipRenderer": {
+													"text": {
+														"simpleText": "Creator posts"
+													},
+													"navigationEndpoint": {
+														"commandMetadata": {
+															"webCommandMetadata": {
+																"sendPost": true,
+																"apiUrl": "/youtubei/v1/browse"
+															}
+														},
+														"continuationCommand": {
+															"token": "{{CHIP_CREATOR}}",
+															"request": "CONTINUATION_REQUEST_TYPE_BROWSE",
+															"command": {
+																"showReloadUiCommand": {
+																	"targetId": "community-page-posts-container"
+																}
+															}
+														}
+													},
+													"isSelected": "{{CREATOR_SELECTED}}"
+												}
+											}
+										],
+										"nextButton": {
+											"buttonRenderer": {
+												"style": "STYLE_DEFAULT",
+												"size": "SIZE_DEFAULT",
+												"isDisabled": false,
+												"icon": {
+													"iconType": "CHEVRON_RIGHT"
+												},
+												"tooltip": "Next",
+												"accessibilityData": {
+													"accessibilityData": {
+														"label": "Next"
+													}
+												}
+											}
+										},
+										"previousButton": {
+											"buttonRenderer": {
+												"style": "STYLE_DEFAULT",
+												"size": "SIZE_DEFAULT",
+												"isDisabled": false,
+												"icon": {
+													"iconType": "CHEVRON_LEFT"
+												},
+												"tooltip": "Previous",
+												"accessibilityData": {
+													"accessibilityData": {
+														"label": "Previous"
+													}
+												}
+											}
+										},
+										"styleType": "FEED_FILTER_CHIP_BAR_STYLE_TYPE_CHANNEL_PAGE_GRID"
+									}
+								},
+								"hideBottomSeparator": true,
+								"targetId": "community-page-posts-container",
+								"disablePullToRefresh": true
+							}
+						},
+						"tabIdentifier": "FEcommunity_page"
+					}
+				}
+			]
+		}
+	},
+	"header": {
+		"pageHeaderRenderer": {
+			"pageTitle": "{{CHANNEL_NAME}}",
+			"content": {
+				"pageHeaderViewModel": {
+					"title": {
+						"dynamicTextViewModel": {
+							"text": {
+								"content": "{{TITLE}}",
+								"styleRuns": [
+									{
+										"startIndex": 0,
+										"length": "{{len:TITLE}}"
+									}
+								]
+							},
+							"rendererContext": {
+								"loggingContext": {}
+							}
+						}
+					},
+					"image": {
+						"decoratedAvatarViewModel": {
+							"avatar": {
+								"avatarViewModel": {
+									"image": {
+										"sources": "{{AVATAR}}",
+										"processor": {
+											"borderImageProcessor": {
+												"circular": true
+											}
+										}
+									},
+									"avatarImageSize": "AVATAR_SIZE_XL",
+									"avatarBorderStyle": "AVATAR_BORDER_STYLE_SQUARE"
+								}
+							},
+							"rendererContext": {
+								"commandContext": {
+									"onTap": {
+										"innertubeCommand": {
+											"commandMetadata": {
+												"webCommandMetadata": {
+													"url": "/channel/{{CHANNEL_ID}}",
+													"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+													"rootVe": 3611,
+													"apiUrl": "/youtubei/v1/browse"
+												}
+											},
+											"browseEndpoint": {
+												"browseId": "{{CHANNEL_ID}}",
+												"canonicalBaseUrl": "/channel/{{CHANNEL_ID}}"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"metadata": {
+						"contentMetadataViewModel": {
+							"metadataRows": [
+								{
+									"metadataParts": [
+										{
+											"avatarStack": {
+												"avatarStackViewModel": {
+													"avatars": "{{AVATARS}}",
+													"text": {
+														"content": "Public",
+														"styleRuns": [
+															{
+																"startIndex": 0,
+																"length": 6
+															}
+														]
+													},
+													"rendererContext": {
+														"loggingContext": {}
+													}
+												}
+											}
+										}
+									]
+								}
+							],
+							"rendererContext": {
+								"loggingContext": {}
+							}
+						}
+					},
+					"description": {
+						"descriptionPreviewViewModel": {
+							"description": {
+								"content": "{{DESCRIPTION}}",
+								"styleRuns": [
+									{
+										"startIndex": 0,
+										"length": "{{len:DESCRIPTION}}"
+									}
+								]
+							},
+							"truncationText": {
+								"content": "...more",
+								"styleRuns": [
+									{
+										"startIndex": 0,
+										"length": 7,
+										"weight": 500
+									}
+								]
+							},
+							"rendererContext": {
+								"loggingContext": {},
+								"accessibilityContext": {
+									"label": "{{DESCRIPTION_LABEL}}"
+								},
+								"commandContext": {
+									"onTap": {
+										"innertubeCommand": {
+											"showEngagementPanelEndpoint": {
+												"engagementPanel": {
+													"engagementPanelSectionListRenderer": {
+														"header": {
+															"engagementPanelTitleHeaderRenderer": {
+																"title": {
+																	"runs": [
+																		{
+																			"text": "Description"
+																		}
+																	]
+																},
+																"visibilityButton": {
+																	"buttonRenderer": {
+																		"icon": {
+																			"iconType": "CLOSE"
+																		},
+																		"accessibilityData": {
+																			"accessibilityData": {
+																				"label": "Close"
+																			}
+																		},
+																		"command": {
+																			"changeEngagementPanelVisibilityAction": {
+																				"targetId": "engagement-panel-page-headers-description",
+																				"visibility": "ENGAGEMENT_PANEL_VISIBILITY_HIDDEN"
+																			}
+																		}
+																	}
+																}
+															}
+														},
+														"content": {
+															"sectionListRenderer": {
+																"contents": [
+																	{
+																		"itemSectionRenderer": {
+																			"contents": [
+																				{
+																					"messageRenderer": {
+																						"text": {
+																							"runs": [
+																								{
+																									"text": "{{DESCRIPTION}}"
+																								}
+																							]
+																						},
+																						"style": {
+																							"value": "RENDER_STYLE_NO_PADDING"
+																						}
+																					}
+																				}
+																			]
+																		}
+																	}
+																]
+															}
+														},
+														"targetId": "engagement-panel-page-headers-description",
+														"identifier": {
+															"surface": "ENGAGEMENT_PANEL_SURFACE_BROWSE",
+															"tag": "engagement-panel-page-headers-description"
+														}
+													}
+												},
+												"identifier": {
+													"surface": "ENGAGEMENT_PANEL_SURFACE_BROWSE",
+													"tag": "engagement-panel-page-headers-description"
+												},
+												"engagementPanelPresentationConfigs": {
+													"engagementPanelPopupPresentationConfig": {
+														"popupType": "PANEL_POPUP_TYPE_DIALOG"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"rendererContext": {
+						"loggingContext": {}
+					}
+				}
+			}
+		}
+	},
+	"microformat": {
+		"microformatDataRenderer": {
+			"title": "{{TITLE_PLAIN}}",
+			"description": "This Community is a space for you to share what you love and connect with the creator and other viewers. Your posts can appear both here and across YouTube, like the Home feed.",
+			"thumbnail": {
+				"thumbnails": "{{AVATAR_68}}"
+			}
+		}
+	},
+	"toolbarMenu": {
+		"menuRenderer": {
+			"items": [
+				{
+					"menuNavigationItemRenderer": {
+						"text": {
+							"runs": [
+								{
+									"text": "Share"
+								}
+							]
+						},
+						"icon": {
+							"iconType": "SHARE"
+						},
+						"navigationEndpoint": {
+							"commandMetadata": {
+								"webCommandMetadata": {
+									"ignoreNavigation": true
+								}
+							},
+							"shareEntityEndpoint": {
+								"serializedShareEntity": "{{b64:CHANNEL_ID:Ghh+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn6gAQvyAQIIAQ%3D%3D}}",
+								"sharePanelType": "SHARE_PANEL_TYPE_UNIFIED_SHARE_PANEL"
+							}
+						}
+					}
+				}
+			]
+		}
+	}
+}

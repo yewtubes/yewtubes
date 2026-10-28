@@ -1,0 +1,13 @@
+{
+	"avatarViewModel": {
+		"image": {
+			"sources": "{{AVATAR_48}}",
+			"processor": {
+				"borderImageProcessor": {
+					"circular": true
+				}
+			}
+		},
+		"avatarImageSize": "AVATAR_SIZE_XS"
+	}
+}

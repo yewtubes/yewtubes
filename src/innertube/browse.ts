@@ -24,6 +24,8 @@ import { CREATE_POST_PARAMS } from "./post-composer";
 import { createDialogFromParams, playlistSortFromParams, scheduledPostsFromParams, withScheduledPosts } from "./proto";
 import { postCommand, postIdFromParams, postPage, postParams, postsContinuation } from "./posts";
 import { sql } from "../db";
+import { channelFromCommunityParams, communityCommand, communityContinuation, communityPage, communityParams, communityPath } from "./community";
+import { communityOpen } from "./community-settings";
 
 // the browse command for a channel tab, as the tab strip's endpoints have it
 function channelCommand(c: Channel, tab: ChannelTab, query?: string) {
@@ -82,6 +84,13 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 	if (browseId === "FEplaylist_aggregation") return playlistsFeed(viewer, params);
 	if (browseId === "FEchannels") return channelsFeed(viewer);
 	if (browseId.startsWith("VL")) return playlistBrowse(browseId.slice(2), viewer);
+	if (browseId === "FEcommunity_page") {
+		const id = channelFromCommunityParams(params);
+		const c = id ? await getChannel({ id }) : undefined;
+		const page = c ? await communityPage(c, viewer) : undefined;
+		if (!c || !page) return undefined;
+		return { kind: "home", title: `${c.title}\u2019s Community`, url: communityPath(c), command: communityCommand(c), response: page };
+	}
 	if (browseId === "FEpost_detail") {
 		const id = postIdFromParams(params);
 		const r = id ? await postPage(id, viewer) : undefined;
@@ -107,7 +116,7 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 const homeFilter = (f: unknown): HomeFilter => (f === "recent" || f === "watched" || f === "new" ? f : "all");
 
 async function continuation(token: string, viewer: Viewer) {
-	const t = decodeToken<{ k: string; o: number; c?: string; s?: ChannelSort; reload?: boolean; p?: string; q?: string; f?: string; v?: string; i?: number; t?: string }>(token);
+	const t = decodeToken<{ k: string; o: number; c?: string; s?: ChannelSort; reload?: boolean; p?: string; q?: string; f?: string; v?: string; i?: number; t?: string; r?: number }>(token);
 	if (!t) throw new ApiError(400, "Invalid continuation");
 	let items: unknown[] = [];
 	let target = "";
@@ -134,6 +143,10 @@ async function continuation(token: string, viewer: Viewer) {
 		if (t.reload) return { responseContext: responseContext(viewer), ...(await videoGridReload(c, viewer, t.s ?? "newest", kind)) };
 		items = await videoGridItems(c, viewer, t.o, t.s ?? "newest", kind);
 		target = `browse-feed${c.id}${kind}`;
+	} else if (t.k === "community") {
+		const r = await communityContinuation(t as { c?: string; s?: string; o?: number; r?: number }, viewer);
+		if (!r) throw new ApiError(404, "Not found");
+		return r;
 	} else if (t.k === "posts" && t.c) return postsContinuation(t.c, t.o, viewer, t.v === "scheduled" ? "scheduled" : "published");
 	else if (t.k === "comments" || t.k === "replies") {
 		// the Shorts player's comments panel and a post's comments
@@ -178,6 +191,8 @@ export async function resolvePath(url: URL): Promise<{ browseId: string; params?
 	if (m) {
 		const c = await getChannel(m[1] ? { handle: m[1] } : { id: m[2] });
 		if (!c) return undefined;
+		// a Community while Viewer posts are on, the Posts tab otherwise
+		if (m[3] === "community" && communityOpen(c)) return { browseId: "FEcommunity_page", params: communityParams(c.id) };
 		const tab = m[3] === "community" ? "posts" : m[3];
 		// the Create menu's "Create post" opens the composer (the params YouTube's own link carries)
 		if (tab === "posts" && url.searchParams.get("show_create_dialog") === "1") return { browseId: c.id, params: CREATE_POST_PARAMS };

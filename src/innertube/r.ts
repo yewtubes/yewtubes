@@ -49,6 +49,9 @@ export type Channel = {
 	subscriber_count: number;
 	video_count: number;
 	user_id: string;
+	// Studio's Viewer posts setting (community-settings.ts)
+	viewer_posts?: unknown;
+	verification?: string;
 };
 
 export const text = (s: string) => ({ simpleText: s });
