@@ -8,9 +8,11 @@ import type { Viewer } from "../client/page";
 import { sql, textArray } from "../db";
 import { deleteMedia } from "../media/process";
 import { isVideoId, newVideoId } from "../ids";
-import { responseContext } from "../innertube/r";
+import { avatarUrl, responseContext } from "../innertube/r";
 import { ApiError, type Ctx, route } from "../innertube/router";
 import { creatorChannel } from "./channel";
+import { cleanViewerPostSettings } from "../innertube/community-settings";
+import { recordMiss } from "../diagnostics";
 import { setCustomThumbnail, setStill } from "./thumbnail";
 import { attachSource } from "./upload";
 import { type VideoRow, contentType, maskedVideo, videosFor } from "./video";
@@ -31,6 +33,42 @@ route("creator/get_creator_channels", async (ctx) => {
 		channels.push(ch ?? { channelId: id, responseStatus: { statusCode: "CREATOR_ENTITY_STATUS_PERMISSION_DENIED" } });
 	}
 	return ok(viewer, { channels });
+});
+
+// Settings' Save: the settings dialog sends each changed section as its own
+// request; Viewer posts (communitySettingsRequest) is kept, the others are
+// not settings this instance has
+route(
+	"creator/update_creator_channel",
+	async (ctx) => {
+		const viewer = owner(ctx);
+		if (ctx.body.channelId !== viewer.channelId) throw new ApiError(403, "You can't change this channel's settings.");
+		const community = ctx.body.communitySettingsRequest?.viewerPostSettings;
+		if (community !== undefined) {
+			const v = cleanViewerPostSettings(community);
+			if (!v) throw new ApiError(400, "Invalid viewer post settings");
+			await sql`update channels set viewer_posts = ${JSON.stringify(v)}::text::jsonb where id = ${viewer.channelId}`;
+		}
+		for (const k of Object.keys(ctx.body)) if (k.endsWith("Request") && k !== "communitySettingsRequest" && ctx.body[k]) recordMiss(`creator/update_creator_channel ${k}`, JSON.stringify(ctx.body[k]).slice(0, 300));
+		return ok(viewer, {});
+	},
+	{ mutation: true },
+);
+
+// Settings > Permissions: who manages the channel. A local account is the
+// channel's only manager, its Owner (as YouTube lists an owner's own row)
+route("creator/list_creator_delegates", async (ctx) => {
+	const viewer = owner(ctx);
+	const [u] = await sql`select u.id, u.login, u.email, c.title from users u join channels c on c.user_id = u.id where c.id = ${viewer.channelId}`;
+	if (!u) return ok(viewer, { delegates: [] });
+	return ok(viewer, {
+		delegates: [
+			{
+				roles: [{ roleId: "", name: "Owner", type: { channelRoleType: "CREATOR_CHANNEL_ROLE_TYPE_OWNER" }, isPredefined: true }],
+				user: { userId: String(u.id), name: u.title, email: u.email ?? u.login, profilePhotoUrl: avatarUrl(viewer.channelId, 176) },
+			},
+		],
+	});
 });
 
 // announcements, survey and promotion slots: none

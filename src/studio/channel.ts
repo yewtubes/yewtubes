@@ -5,6 +5,7 @@ import type { Viewer } from "../client/page";
 import { sql, textArray } from "../db";
 import { make } from "../innertube/tpl";
 import { avatarThumbnails } from "../innertube/r";
+import { viewerPostSettings } from "../innertube/community-settings";
 
 export type Mask = Record<string, unknown> | null;
 
@@ -21,7 +22,7 @@ export function applyMask(o: any, mask: Mask): any {
 }
 
 export async function creatorChannel(viewer: NonNullable<Viewer>, mask: Mask, channelId = viewer.channelId) {
-	const [c] = await sql`select c.id, c.title, c.created_at,
+	const [c] = await sql`select c.id, c.title, c.created_at, c.viewer_posts,
 			(select count(*)::int from videos v where v.channel_id = c.id and v.deleted_at is null) as videos,
 			(select coalesce(sum(view_count), 0)::bigint from videos v where v.channel_id = c.id and v.deleted_at is null) as views,
 			(select count(*)::int from subscriptions s where s.channel_id = c.id) as subs
@@ -36,6 +37,8 @@ export async function creatorChannel(viewer: NonNullable<Viewer>, mask: Mask, ch
 	});
 	// only the owner sees the owner's permissions
 	if (c.id !== viewer.channelId) return null;
+	// Settings > Community: Viewer posts, which opens the channel's Community
+	(ch.commentsSettings as { viewerPostSettings: unknown }).viewerPostSettings = viewerPostSettings(c.viewer_posts);
 	return applyMask(ch, mask);
 }
 

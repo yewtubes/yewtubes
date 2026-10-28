@@ -2249,6 +2249,16 @@ function studio() {
 	};
 	let ch = prefetch;
 	for (const [, r] of bodies("in-studio-upload", /get_creator_channels/)) ch = merge(ch, r.channels[0]);
+	// what the Settings dialog reads besides (its sections, contracts,
+	// monetization details), from the full capture; only fields not already set
+	const missing = (a: any, b: any): any => {
+		if (a === undefined) return b;
+		if (!a || typeof a !== "object" || Array.isArray(a) || !b || typeof b !== "object" || Array.isArray(b)) return a;
+		const out = { ...a };
+		for (const [k, v] of Object.entries(b)) out[k] = missing(a[k], v);
+		return out;
+	};
+	for (const [, r] of bodies("studio-all", /get_creator_channels\.resp$/)) if (r.channels?.[0]?.channelId === ch.channelId) ch = missing(ch, r.channels[0]);
 	const id: string = ch.channelId;
 	const title: string = ch.title;
 	ch = clean(ch);

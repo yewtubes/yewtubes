@@ -442,7 +442,894 @@
 			"clipsState": "CLIPS_CHANNEL_STATE_ENABLED"
 		},
 		"shoppingSettings": {
-			"autoTaggingEnabled": {}
+			"autoTaggingEnabled": {},
+			"autoTaggingAiDisclaimerEnabled": false
+		},
+		"creatorMusic": {},
+		"adwordsSettings": {},
+		"branding": {
+			"channelBranding": {
+				"timingInfo": {}
+			}
+		},
+		"redirectSettings": {},
+		"asrCaption": {},
+		"liveSettings": {
+			"redirectsFromSubscriptionsAllowed": true,
+			"redirectsFromSubscriptionsSettingEnabled": false,
+			"redirectsFromAllChannelsAllowed": false
+		},
+		"demographicsSettings": {
+			"setToken": "GgA=",
+			"updateRestrictions": {
+				"updatePolicy": {
+					"days": "45",
+					"maxUpdates": "1"
+				},
+				"updateAllowance": {
+					"remainingUpdates": "1",
+					"validity": {
+						"year": 2026,
+						"month": 12,
+						"day": 6
+					}
+				}
+			},
+			"currentCountryCode": "US",
+			"currentSurveyVersion": 1,
+			"newDemographicsSurvey": {
+				"surveyDefinition": {
+					"languageCode": "en-US",
+					"questions": [
+						{
+							"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US1",
+							"answerSet": {
+								"answersAndGroups": [
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_1"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_2"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_3"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_4"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_5"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_6"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_7"
+											}
+										}
+									},
+									{
+										"answer": {
+											"answerWithOptionalInput": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_8"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_9"
+											}
+										}
+									}
+								],
+								"allowMultiSelect": true,
+								"preferNotToAnswerId": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_9",
+								"presentation": "CHANNEL_DEMOGRAPHICS_ANSWER_SET_PRESENTATION_FULLY_EXPANDED_LIST"
+							}
+						},
+						{
+							"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US2",
+							"answerSet": {
+								"answersAndGroups": [
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_1"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_2"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_3"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_4"
+											}
+										}
+									}
+								],
+								"allowMultiSelect": false,
+								"preferNotToAnswerId": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_4",
+								"presentation": "CHANNEL_DEMOGRAPHICS_ANSWER_SET_PRESENTATION_FULLY_EXPANDED_LIST"
+							}
+						},
+						{
+							"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US3",
+							"answerSet": {
+								"answersAndGroups": [
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_1"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_2"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_3"
+											}
+										}
+									},
+									{
+										"answer": {
+											"answerWithOptionalInput": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_4"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_5"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_6"
+											}
+										}
+									}
+								],
+								"allowMultiSelect": true,
+								"preferNotToAnswerId": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_6",
+								"presentation": "CHANNEL_DEMOGRAPHICS_ANSWER_SET_PRESENTATION_FULLY_EXPANDED_LIST"
+							}
+						},
+						{
+							"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US4",
+							"answerSet": {
+								"answersAndGroups": [
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_1"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_2"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_3"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_4"
+											}
+										}
+									}
+								],
+								"allowMultiSelect": false,
+								"preferNotToAnswerId": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_4",
+								"presentation": "CHANNEL_DEMOGRAPHICS_ANSWER_SET_PRESENTATION_FULLY_EXPANDED_LIST"
+							}
+						},
+						{
+							"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US5",
+							"answerSet": {
+								"answersAndGroups": [
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_1"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_2"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_3"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_4"
+											}
+										}
+									},
+									{
+										"answer": {
+											"answerWithOptionalInput": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_5"
+											}
+										}
+									}
+								],
+								"allowMultiSelect": true,
+								"presentation": "CHANNEL_DEMOGRAPHICS_ANSWER_SET_PRESENTATION_FULLY_EXPANDED_LIST"
+							}
+						},
+						{
+							"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US6",
+							"answerSet": {
+								"answersAndGroups": [
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US6_1"
+											}
+										}
+									},
+									{
+										"answer": {
+											"basicAnswer": {
+												"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US6_2"
+											}
+										}
+									}
+								],
+								"allowMultiSelect": false,
+								"presentation": "CHANNEL_DEMOGRAPHICS_ANSWER_SET_PRESENTATION_FULLY_EXPANDED_LIST"
+							}
+						}
+					]
+				},
+				"surveyTexts": {
+					"richTexts": {
+						"consentScreenTexts": {
+							"headerTitle": {
+								"isProminent": true,
+								"title": {
+									"runs": [
+										{
+											"text": "We need your help to make YouTube more inclusive. Take this 7-question survey. It will only take 5 minutes!"
+										}
+									]
+								}
+							},
+							"sections": [
+								{
+									"items": [
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "You’re invited to take a survey that will help us better understand the demographic and identity information of creator and artist communities on YouTube."
+													}
+												]
+											}
+										},
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "If you agree to take the survey, we’ll use the information you provide to help us evaluate:"
+													}
+												]
+											}
+										},
+										{
+											"unorderedList": {
+												"items": [
+													{
+														"runs": [
+															{
+																"text": "How our algorithms and systems treat content from various communities"
+															}
+														]
+													},
+													{
+														"runs": [
+															{
+																"text": "How various communities are growing on YouTube"
+															}
+														]
+													},
+													{
+														"runs": [
+															{
+																"text": "Potential patterns of abuse, including harassment and hate"
+															}
+														]
+													},
+													{
+														"runs": [
+															{
+																"text": "Our current programs, campaigns, and offerings"
+															}
+														]
+													}
+												]
+											}
+										}
+									]
+								},
+								{
+									"header": {
+										"runs": [
+											{
+												"text": "Tell us if you’re interested in special programs"
+											}
+										]
+									},
+									"items": [
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "At the end of the survey, we ask whether we can use your answers when deciding whom to invite to special programs and celebrations. Special programs and celebrations may include having your channel or content highlighted and participating in programs, events, or campaigns such as user research, fundraising opportunities, or workshops."
+													}
+												]
+											}
+										}
+									]
+								},
+								{
+									"header": {
+										"runs": [
+											{
+												"text": "How we’ll use your info"
+											}
+										]
+									},
+									"items": [
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "We are optionally asking you to submit your demographic information. YouTube is a Google company. If you choose to provide your information, Google LLC will keep your information in accordance with the "
+													},
+													{
+														"text": "Google Privacy Policy",
+														"navigationEndpoint": {
+															"commandMetadata": {
+																"webCommandMetadata": {
+																	"url": "https://policies.google.com/privacy?hl=en-US",
+																	"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+																	"rootVe": 83769
+																}
+															},
+															"urlEndpoint": {
+																"url": "https://policies.google.com/privacy?hl=en-US",
+																"target": "TARGET_NEW_WINDOW"
+															}
+														}
+													},
+													{
+														"text": "."
+													}
+												]
+											}
+										},
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "We’ll use the information you share to help make YouTube a more accurate, consistent, safe, and inclusive platform. Your survey response information will not be made public without your additional consent, and it won’t be used for advertising purposes."
+													}
+												]
+											}
+										},
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "You can delete your information any time."
+													}
+												]
+											}
+										},
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "You consent to YouTube using the information that you provide in the survey for the purposes described above. "
+													},
+													{
+														"text": "Learn more",
+														"navigationEndpoint": {
+															"commandMetadata": {
+																"webCommandMetadata": {
+																	"url": "https://support.google.com/youtube/answer/10272442?hl=en-US",
+																	"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+																	"rootVe": 83769
+																}
+															},
+															"urlEndpoint": {
+																"url": "https://support.google.com/youtube/answer/10272442?hl=en-US",
+																"target": "TARGET_NEW_WINDOW"
+															}
+														}
+													}
+												]
+											}
+										}
+									]
+								}
+							]
+						},
+						"channelLeadScreenTexts": {
+							"headerTitle": {
+								"title": {
+									"runs": [
+										{
+											"text": "Main channel lead"
+										}
+									]
+								}
+							},
+							"sections": [
+								{
+									"items": [
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "We would like a response to this survey from the main creator / artist / talent who leads your channel. We’ll call this individual the channel’s main lead.",
+														"bold": true
+													}
+												]
+											}
+										},
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "This means:"
+													}
+												]
+											}
+										},
+										{
+											"unorderedList": {
+												"items": [
+													{
+														"runs": [
+															{
+																"text": "The main creator who leads content strategy & creation for your channel"
+															}
+														]
+													},
+													{
+														"runs": [
+															{
+																"text": "The creator who is explicitly associated with the channel’s name or brand"
+															}
+														]
+													},
+													{
+														"runs": [
+															{
+																"text": "The main on-screen talent of your channel, including through video or voiceover"
+															}
+														]
+													}
+												]
+											}
+										}
+									]
+								}
+							]
+						},
+						"multiLeadConfirmationScreenTexts": {
+							"sections": [
+								{
+									"items": [
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "This survey currently supports providing information for one main lead.",
+														"bold": true
+													}
+												]
+											}
+										},
+										{
+											"paragraph": {
+												"runs": [
+													{
+														"text": "As a channel with multiple leads, you can choose to either end the survey now, or continue and provide answers for yourself as the channel’s main lead."
+													}
+												]
+											}
+										}
+									]
+								}
+							]
+						},
+						"questionListScreenTexts": {
+							"headerTitle": {
+								"title": {
+									"runs": [
+										{
+											"text": "Creator demographics"
+										}
+									]
+								}
+							},
+							"footerTitle": {
+								"runs": [
+									{
+										"text": "Thanks so much for participating!"
+									}
+								]
+							}
+						}
+					},
+					"navigationButtonLabels": {
+						"consentAgreementLabel": "I agree",
+						"exitSurveyLongLabel": "Exit the survey",
+						"exitSurveyShortLabel": "Exit",
+						"continueLabel": "Continue",
+						"backLabel": "Back",
+						"submitLabel": "Submit",
+						"closeLabel": "Close"
+					},
+					"quantityGroupTexts": {
+						"questionText": "How many main leads, as defined above, does your channel have?",
+						"answerLabels": [
+							{
+								"answer": "CHANNEL_DEMOGRAPHICS_QUANTITY_GROUP_ONE",
+								"label": "My channel has 1 main lead"
+							},
+							{
+								"answer": "CHANNEL_DEMOGRAPHICS_QUANTITY_GROUP_TWO_TO_THREE",
+								"label": "My channel has 2-3 main leads"
+							},
+							{
+								"answer": "CHANNEL_DEMOGRAPHICS_QUANTITY_GROUP_FOUR_OR_MORE",
+								"label": "My channel has 4+ main leads"
+							}
+						]
+					},
+					"multiLeadConfirmationTexts": {
+						"continueOptionLabel": "Continue",
+						"exitOptionLabel": "Exit survey"
+					}
+				},
+				"questionTexts": [
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US1",
+						"text": "Which of the following do you, the main lead, identify as? Select all that apply"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US2",
+						"text": "Do you, the main lead, identify as a member of the LGBTQ+ community? (Including, but not limited to, Lesbian, Gay, Bisexual, Transgender, Queer, Pansexual, and/or Asexual)"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US3",
+						"text": "Which of the following do you, the main lead, identify as? Select all that apply"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US4",
+						"text": "Do you, the main lead, identify as transgender?"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US5",
+						"text": "Which of the following best describes this channel? Select all that apply"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_QUESTION_ID_US6",
+						"text": "Do you want to be invited to specialized programs and celebrations, based on your answers?",
+						"secondaryText": "If you select Yes, we may contact you with opportunities to have your channel or content featured, and/or to participate in programs, events, research, and campaigns. Specialized programs and celebrations may include roundtable sessions, workshops, and/or fundraising opportunities."
+					}
+				],
+				"answerLabels": [
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_1",
+						"label": "Asian"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_2",
+						"label": "Black or African American"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_3",
+						"label": "Hispanic, Latino, Latina, or Latinx"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_4",
+						"label": "Middle Eastern or North African"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_5",
+						"label": "Native American or Alaskan Native"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_6",
+						"label": "Pacific Islander"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_7",
+						"label": "White"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_8",
+						"label": "Prefer to self-describe [please specify]"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US1_9",
+						"label": "Prefer not to answer"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_1",
+						"label": "Yes"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_2",
+						"label": "No"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_3",
+						"label": "Not sure or don’t know"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US2_4",
+						"label": "Prefer not to answer"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_1",
+						"label": "Woman"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_2",
+						"label": "Man"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_3",
+						"label": "Non-binary"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_4",
+						"label": "Prefer to self-describe [please specify]"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_5",
+						"label": "Not sure or don’t know"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US3_6",
+						"label": "Prefer not to answer"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_1",
+						"label": "Yes"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_2",
+						"label": "No"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_3",
+						"label": "Not sure or don’t know"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US4_4",
+						"label": "Prefer not to answer"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_1",
+						"label": "This channel is led by one or many individual creators"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_2",
+						"label": "This channel is led by an organization"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_3",
+						"label": "This channel represents a musical artist or band"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_4",
+						"label": "This channel is part of the portfolio of a traditional media company, broadcaster, publisher, music label, or brand"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US5_5",
+						"label": "Other [please specify]"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US6_1",
+						"label": "Yes, opt me in"
+					},
+					{
+						"id": "CHANNEL_DEMOGRAPHICS_ANSWER_ID_US6_2",
+						"label": "Not right now"
+					}
+				]
+			}
+		},
+		"adBlockingSettings": {
+			"urlExclusionSizeLimit": "URL_EXCLUSION_SIZE_LIMIT_UNKNOWN",
+			"generalCategoryExclusionSizeLimit": "GENERAL_CATEGORY_EXCLUSION_SIZE_LIMIT_UNKNOWN"
+		},
+		"trainabilitySettings": {
+			"trainability3pSettings": {
+				"availableOptions": [
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_META",
+						"name": "Meta"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_BYTE_DANCE",
+						"name": "ByteDance"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_ADOBE",
+						"name": "Adobe"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_OPEN_AI",
+						"name": "OpenAI"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_MIDJOURNEY",
+						"name": "Midjourney"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_RUNWAY",
+						"name": "Runway"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_STABILITY_AI",
+						"name": "Stability AI"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_PIKA_LABS",
+						"name": "Pika Labs"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_PERPLEXITY",
+						"name": "Perplexity"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_NVIDIA",
+						"name": "Nvidia"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_APPLE",
+						"name": "Apple"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_AMAZON",
+						"name": "Amazon"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_ANTHROPIC",
+						"name": "Anthropic"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_XAI",
+						"name": "xAI"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_MICROSOFT",
+						"name": "Microsoft"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_IBM",
+						"name": "IBM"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_COHERE",
+						"name": "Cohere"
+					},
+					{
+						"company": "TRAINABILITY_THIRD_PARTY_COMPANY_A121_LABS",
+						"name": "A121 Labs"
+					}
+				]
+			}
+		},
+		"paymentsExperienceSettings": {
+			"currencyBannerLastDismissedDate": {
+				"year": 0,
+				"month": 0,
+				"day": 0
+			},
+			"multiChannelBannerLastDismissedDate": {
+				"year": 0,
+				"month": 0,
+				"day": 0
+			}
+		},
+		"midrollRevampSettings": {},
+		"dataSharingForAdsAndBrandsSettings": {},
+		"audioVideoEnhancementSettings": {
+			"audioEnhancementSetting": "AUDIO_ENHANCEMENT_SETTING_UNSPECIFIED",
+			"videoEnhancementSetting": "VIDEO_ENHANCEMENT_SETTING_UNSPECIFIED"
+		},
+		"dubSettings": {
+			"autoDubOptOut": false,
+			"autoDubManualPublish": false,
+			"autoDubAutoPublishExperimentalLang": false,
+			"autoDubEarlyAccessOptIn": false
+		},
+		"contentInspirationSettings": {
+			"illustrationStyle": "CHANNEL_CONTENT_INSPIRATION_IMAGE_STYLE_UNSPECIFIED"
+		},
+		"verificationSettings": {
+			"alreadyHasVerifiedBadge": false
+		},
+		"adsReuseSettings": {
+			"affiliatePartnershipAds": {}
 		}
 	},
 	"responseStatus": {
@@ -478,7 +1365,10 @@
 			"CREATOR_CHANNEL_PERMISSION_CHANNEL_VERIFICATION_MANAGER",
 			"CREATOR_CHANNEL_PERMISSION_COMMENT_READER",
 			"CREATOR_CHANNEL_PERMISSION_COMMENT_WRITER"
-		]
+		],
+		"canManageDemographicsSettings": {
+			"value": true
+		}
 	},
 	"timeCreatedSeconds": "{{TIME_CREATED}}",
 	"isOfficialArtistChannel": false,
@@ -511,5 +1401,207 @@
 		"livechatAutomodMode": "LIVE_CHAT_AUTO_MOD_MODE_UNSPECIFIED",
 		"isPersonalizedModerationEnabled": false,
 		"livechatLiveAiSuggestionsOptOut": false
+	},
+	"monetizationStatus": "CHANNEL_MONETIZATION_STATUS_INACTIVE_PENDING_ACTIVITY",
+	"monetizationDetails": {
+		"eligibilityMetrics": {
+			"pastYearPublicWatchHours": "0",
+			"subscriberCount": "0",
+			"watchHoursUpdateDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 17
+			},
+			"twoStepVerificationRequired": true,
+			"activeCommunityGuidelinesStrikeCount": "0",
+			"yppEligibilityShortsViews": "0",
+			"watchHoursAndShortsViewsUpdateDate": {
+				"year": 2026,
+				"month": 10,
+				"day": 17
+			},
+			"thresholds": {
+				"upperTierThresholds": {
+					"watchHoursThreshold": "4000",
+					"subscriberCountThreshold": "1000",
+					"shortsViewsThreshold": "10000000"
+				},
+				"lowerTierThresholds": {
+					"watchHoursThreshold": "3000",
+					"subscriberCountThreshold": "500",
+					"shortsViewsThreshold": "3000000",
+					"recentVideoCountThreshold": "3",
+					"playHoursThreshold": "100000"
+				}
+			},
+			"ttCheckRequired": true,
+			"yppEligibilityRecentVideoCount": "0",
+			"isTrustTierMetForYppApply": false,
+			"yppEligibilityPlayHours": "0"
+		},
+		"eligibilityNotificationRequested": false,
+		"yppTierDetails": {
+			"inYppTierRollout": true,
+			"qualifiedForUpperTier": false,
+			"qualifiedForLowerTier": false
+		},
+		"tieredEligibilityNotificationsRequested": false
+	},
+	"contracts": {
+		"contracts": [
+			{
+				"type": "CREATOR_CONTRACT_TYPE_RSS_INGESTION",
+				"status": "CREATOR_CONTRACT_STATUS_ELIGIBLE",
+				"eligibleVersion": "3"
+			}
+		]
+	},
+	"channelUiCustomization": {
+		"monetizationDisplay": {
+			"monetizeVideosItemState": "MONETIZATION_DISPLAY_STATE_UNKNOWN",
+			"gettingPaidAdsenseOnboardingItemState": "MONETIZATION_DISPLAY_STATE_UNKNOWN",
+			"learningModuleEarningOnYoutubeItemState": "MONETIZATION_DISPLAY_STATE_UNKNOWN",
+			"learningModuleEarningWithAdsItemState": "MONETIZATION_DISPLAY_STATE_UNKNOWN",
+			"learningModuleOtherWaysToEarnItemState": "MONETIZATION_DISPLAY_STATE_UNKNOWN",
+			"learningModuleEstimatedEarningsItemState": "MONETIZATION_DISPLAY_STATE_UNKNOWN",
+			"learningModuleAccessingSupportItemState": "MONETIZATION_DISPLAY_STATE_UNKNOWN",
+			"programUpdateEducationalItemState": "MONETIZATION_DISPLAY_STATE_ELIGIBLE"
+		},
+		"mediaKit": {},
+		"connectionsInboxFilters": {}
+	},
+	"yppBenefitsDetails": {
+		"nextTiersBenefits": [
+			{
+				"yppTier": "YPP_TIER_LOWER",
+				"availableBenefits": [
+					{
+						"id": "YPP_BENEFIT_ID_MEMBERSHIPS",
+						"status": {
+							"displayStatus": "YPP_BENEFIT_DISPLAY_STATUS_INELIGIBLE"
+						},
+						"entry": {
+							"id": "YPP_BENEFIT_ENTRY_ID_MEMBERSHIPS",
+							"rank": 30
+						}
+					},
+					{
+						"id": "YPP_BENEFIT_ID_SUPERS",
+						"status": {
+							"displayStatus": "YPP_BENEFIT_DISPLAY_STATUS_INELIGIBLE"
+						},
+						"entry": {
+							"id": "YPP_BENEFIT_ENTRY_ID_SUPERS",
+							"rank": 40
+						}
+					},
+					{
+						"id": "YPP_BENEFIT_ID_SHOPPING_CREATOR_STORE",
+						"status": {
+							"displayStatus": "YPP_BENEFIT_DISPLAY_STATUS_INELIGIBLE"
+						},
+						"entry": {
+							"id": "YPP_BENEFIT_ENTRY_ID_SHOPPING",
+							"rank": 50
+						}
+					}
+				]
+			},
+			{
+				"yppTier": "YPP_TIER_UPPER",
+				"availableBenefits": [
+					{
+						"id": "YPP_BENEFIT_ID_WATCH_PAGE_ADS",
+						"status": {
+							"displayStatus": "YPP_BENEFIT_DISPLAY_STATUS_INELIGIBLE"
+						},
+						"entry": {
+							"id": "YPP_BENEFIT_ENTRY_ID_WATCH_PAGE_ADS",
+							"rank": 10
+						}
+					},
+					{
+						"id": "YPP_BENEFIT_ID_SHORTS_FEED_ADS",
+						"status": {
+							"displayStatus": "YPP_BENEFIT_DISPLAY_STATUS_INELIGIBLE"
+						},
+						"entry": {
+							"id": "YPP_BENEFIT_ENTRY_ID_SHORTS_FEED_ADS",
+							"rank": 20
+						}
+					}
+				]
+			}
+		],
+		"creatorSupportAndToolsBenefits": [
+			{
+				"id": "YPP_BENEFIT_ID_CHAT_EMAIL_SUPPORT",
+				"status": {
+					"displayStatus": "YPP_BENEFIT_DISPLAY_STATUS_INELIGIBLE"
+				},
+				"entry": {
+					"id": "YPP_BENEFIT_ENTRY_ID_CHAT_EMAIL_SUPPORT",
+					"rank": 1020
+				}
+			},
+			{
+				"id": "YPP_BENEFIT_ID_COPYRIGHT_MATCH_TOOL",
+				"status": {
+					"displayStatus": "YPP_BENEFIT_DISPLAY_STATUS_INELIGIBLE"
+				},
+				"entry": {
+					"id": "YPP_BENEFIT_ENTRY_ID_COPYRIGHT_MATCH_TOOL",
+					"rank": 1030
+				}
+			},
+			{
+				"id": "YPP_BENEFIT_ID_EXTERNAL_LINKS",
+				"status": {
+					"displayStatus": "YPP_BENEFIT_DISPLAY_STATUS_INELIGIBLE"
+				},
+				"entry": {
+					"id": "YPP_BENEFIT_ENTRY_ID_EXTERNAL_LINKS",
+					"rank": 1050
+				}
+			}
+		]
+	},
+	"channelIncentives": {},
+	"crosswalkStatus": {},
+	"pdgData": {
+		"featureStates": {
+			"chState": {
+				"eligibility": "PDG_FEATURE_ELIGIBILITY_INELIGIBLE",
+				"enablement": "CHANNEL_FEATURE_ENABLEMENT_DISABLED",
+				"ineligibleReason": "PDG_FEATURE_INELIGIBLE_REASON_NOT_MONETIZATION_BASICS_READY"
+			},
+			"stState": {
+				"eligibility": "PDG_FEATURE_ELIGIBILITY_INELIGIBLE",
+				"enablement": "CHANNEL_FEATURE_ENABLEMENT_DISABLED",
+				"ineligibleReason": "PDG_FEATURE_INELIGIBLE_REASON_NOT_MONETIZATION_BASICS_READY"
+			},
+			"svState": {
+				"eligibility": "PDG_FEATURE_ELIGIBILITY_INELIGIBLE",
+				"enablement": "CHANNEL_FEATURE_ENABLEMENT_DISABLED",
+				"ineligibleReason": "PDG_FEATURE_INELIGIBLE_REASON_NOT_MONETIZATION_BASICS_READY"
+			},
+			"hypeState": {
+				"eligibility": "PDG_FEATURE_ELIGIBILITY_INELIGIBLE",
+				"enablement": "CHANNEL_FEATURE_ENABLEMENT_DISABLED",
+				"ineligibleReason": "PDG_FEATURE_INELIGIBLE_REASON_NOT_MONETIZATION_BASICS_READY"
+			},
+			"giftState": {
+				"eligibility": "PDG_FEATURE_ELIGIBILITY_INELIGIBLE",
+				"enablement": "CHANNEL_FEATURE_ENABLEMENT_DISABLED",
+				"ineligibleReason": "PDG_FEATURE_INELIGIBLE_REASON_NOT_MONETIZATION_BASICS_READY"
+			},
+			"hypeLaunchState": "HYPE_LAUNCH_STATE_FREE_SETTINGS"
+		},
+		"contractInfo": {
+			"contractState": "CHANNEL_CONTRACT_STATE_UNSIGNED"
+		},
+		"giftContractInfo": {
+			"contractState": "CHANNEL_CONTRACT_STATE_UNSIGNED"
+		}
 	}
 }
