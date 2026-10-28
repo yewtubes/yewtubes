@@ -36,6 +36,11 @@ function bodies(dir: string, match: RegExp): [any, any][] {
 		.map((n) => [JSON.parse(readFileSync(join(d, n.replace(/\.resp$/, ".req.json")), "utf8")), JSON.parse(readFileSync(join(d, n), "utf8"))]);
 }
 function pageVar(html: string, name = "ytInitialData"): any {
+	// newer builds carry ytInitialData as a JSON script element
+	if (name === "ytInitialData") {
+		const m = /<script id="yt-initial-data" type="application\/json"[^>]*>/.exec(html);
+		if (m) return JSON.parse(html.slice(m.index + m[0].length, html.indexOf("</script>", m.index)));
+	}
 	const at = html.indexOf(`var ${name} = `);
 	if (at < 0) throw new Error(`no ${name}`);
 	const start = at + `var ${name} = `.length;
@@ -193,6 +198,9 @@ function tokenRunLengths(o: any) {
 
 function save(name: string, data: unknown, samples: string[] = []) {
 	tokenRunLengths(data);
+	// a duration badge carries YouTube's music note for Music videos
+	// (DURATION_ICON, left out of the response when unset)
+	for (const b of findAll(data, "thumbnailBadgeViewModel")) if (b.text === "{{DURATION}}" && !b.icon) Object.assign(b, { icon: "{{DURATION_ICON}}", ...b });
 	const text = JSON.stringify(data);
 	const bad: string[] = [];
 	const host = FORBIDDEN_HOSTS.exec(text);
@@ -1333,31 +1341,54 @@ function ownListPage() {
 }
 
 // ======================================================================
-// watch history. Kept: the day sections, Videos/All chips, searching the
-// history, removing an entry, clearing it all. Left out: pausing (not
-// offered), Shorts/Podcasts/Music chips, and the links to Google's My
-// Activity (comments, posts, live chat, "Manage all history")
-const HISTORY_CHIPS: Record<string, string> = { All: "ALL", Videos: "VIDEOS" };
+// watch history: the day sections (videos, and each day's Shorts in a reel
+// shelf), the All/Videos/Shorts/Music chips, searching the history, removing
+// an entry, clearing it all, pausing it, and the My Activity links (which
+// lead to the instance's own activity pages)
+const HISTORY_CHIPS: Record<string, string> = { All: "ALL", Videos: "VIDEOS", Shorts: "SHORTS", Music: "MUSIC" };
+const ACTIVITY_LINKS: Record<string, string> = { "Manage all history": "ACTIVITY_URL", Comments: "ACTIVITY_COMMENTS_URL", Posts: "ACTIVITY_POSTS_URL", "Live chat": "ACTIVITY_LIVE_CHAT_URL" };
 function history() {
-	const p = pageOnly(pageVar(body("in-history", /^001-/)));
+	const p = pageOnly(pageVar(body("in-history2", /^001-/)));
 	const t = p.contents.twoColumnBrowseResultsRenderer;
 	const acts = t.secondaryContents.browseFeedActionsRenderer;
-	acts.contents = acts.contents.filter((c: any) => c.searchBoxRenderer || /^Clear all watch history$/.test(contentOf(c.buttonRenderer?.text)));
 	const box = acts.contents.find((c: any) => c.searchBoxRenderer).searchBoxRenderer;
 	box.endpoint.browseEndpoint.query = "{{QUERY}}";
-	const clear = acts.contents.find((c: any) => c.buttonRenderer).buttonRenderer;
-	const dlg = find(clear, "confirmDialogRenderer");
-	const msg = dlg.dialogMessages[0].runs;
-	// the account line, and the first paragraph (the rest is about Google's other products)
-	dlg.dialogMessages[0].runs = [{ ...msg[0], text: "{{VIEWER_NAME}} ({{VIEWER_AT_HANDLE}})" }, { text: msg[1].text.split(/\n\n(?=Your video recommendations)/)[0] }];
-	for (const fe of findAll(clear, "feedbackEndpoint")) fe.feedbackToken = "{{CLEAR_TOKEN}}";
-	const sl = t.tabs[0].tabRenderer.content.sectionListRenderer;
-	const chips = sl.header.chipBarViewModel;
-	chips.chips = chips.chips.filter((c: any) => HISTORY_CHIPS[c.chipViewModel.text]);
-	for (const c of chips.chips) {
-		const k = HISTORY_CHIPS[c.chipViewModel.text];
-		c.chipViewModel.selected = `{{CHIP_${k}_SELECTED}}`;
+	const button = (text: string) => acts.contents.find((c: any) => contentOf(c.buttonRenderer?.text) === text);
+	// the account line of a dialog, and its link to Google's My Activity
+	const dialog = (b: any, token: string) => {
+		const dlg = find(b, "confirmDialogRenderer");
+		const runs = dlg.dialogMessages[0].runs;
+		runs[0].text = "{{VIEWER_NAME}} ({{VIEWER_AT_HANDLE}})";
+		for (const r of runs) if (r.navigationEndpoint?.urlEndpoint) r.navigationEndpoint = { commandMetadata: { webCommandMetadata: { url: "{{ACTIVITY_URL}}", webPageType: "WEB_PAGE_TYPE_UNKNOWN", rootVe: 83769 } }, urlEndpoint: { url: "{{ACTIVITY_URL}}", target: "TARGET_NEW_WINDOW" } };
+		for (const fe of findAll(b, "feedbackEndpoint")) fe.feedbackToken = `{{${token}}}`;
+	};
+	dialog(button("Clear all watch history"), "CLEAR_TOKEN");
+	// Pause: its own template, in the slot the page keeps for the toggle
+	const pause = clean(button("Pause watch history"));
+	dialog(pause, "PAUSE_TOKEN");
+	save("history/pause_button", tokenize(pause, []));
+	// paused, the toggle turns it back on: "Turn on watch history" (YouTube's
+	// wording; no capture of the paused page, so it acts without a dialog)
+	const resume = structuredClone(pause);
+	const rb = resume.buttonRenderer;
+	rb.text.runs[0].text = "Turn on watch history";
+	rb.icon.iconType = "PLAY_OUTLINED";
+	const fe = find(rb.navigationEndpoint, "confirmEndpoint");
+	fe.feedbackEndpoint.feedbackToken = "{{RESUME_TOKEN}}";
+	fe.feedbackEndpoint.actions = [{ localWatchHistoryCommand: { localWatchHistoryCommandType: "LOCAL_WATCH_HISTORY_COMMAND_TYPE_RESUME" } }];
+	delete rb.navigationEndpoint;
+	rb.serviceEndpoint = fe;
+	save("history/resume_button", tokenize(resume, []));
+	acts.contents[acts.contents.indexOf(button("Pause watch history"))] = "{{PAUSE_TOGGLE}}";
+	for (const c of acts.contents) {
+		const r = c.buttonRenderer ?? c.compactLinkRenderer;
+		const tok = r && ACTIVITY_LINKS[contentOf(r.text ?? r.title)];
+		if (!tok) continue;
+		r.navigationEndpoint.commandMetadata.webCommandMetadata.url = `{{${tok}}}`;
+		r.navigationEndpoint.urlEndpoint.url = `{{${tok}}}`;
 	}
+	const sl = t.tabs[0].tabRenderer.content.sectionListRenderer;
+	for (const c of sl.header.chipBarViewModel.chips) c.chipViewModel.selected = `{{CHIP_${HISTORY_CHIPS[c.chipViewModel.text]}_SELECTED}}`;
 	// one day: its heading and entries
 	const sec = clean(sl.contents.find((c: any) => c.itemSectionRenderer?.contents?.some((x: any) => x.lockupViewModel)));
 	const sample = sec.itemSectionRenderer.contents.find((x: any) => x.lockupViewModel);
@@ -1372,10 +1403,41 @@ function history() {
 	remove.feedbackToken = "{{REMOVE_TOKEN}}";
 	const bar = find(item, "thumbnailOverlayProgressBarViewModel");
 	if (bar) bar.startPercent = "{{WATCHED_PERCENT}}";
-	const { item: tokenized, samples } = videoLockup(item);
+	// a partly watched entry resumes where the viewer stopped: &t=, and the
+	// watch endpoint's startTimeSeconds and params (field 39, the seconds)
+	const resumeAt = find(item, "startTimeSeconds");
+	if (!resumeAt) throw new Error("the history sample has no resume position");
+	for (const h of findAllHolders(item, "startTimeSeconds")) Object.assign(h, { params: "{{RESUME_PARAMS}}", startTimeSeconds: "{{RESUME_SECONDS}}" });
+	const { item: tokenized, samples } = videoLockup(strings(item, (x) => x.replace(`&t=${resumeAt}s`, "{{RESUME_T}}")));
 	save("item/video_lockup_history", tokenized, samples);
 	sl.contents = "{{CONTENTS}}";
 	save("history/page", tokenize(p, [], [], [["", "QUERY"]]));
+
+	// a day's Shorts: YouTube's reel shelf (with its Send feedback menu) of
+	// shorts lockups that can be removed from the history
+	const shorts = JSON.parse(body("in-history-chips", /^007-/));
+	const ssec = shorts.contents.twoColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents.find((c: any) => find(c, "reelShelfRenderer"));
+	const shelf = clean(structuredClone(find(ssec, "reelShelfRenderer")));
+	const sitem = shelf.items[0];
+	shelf.items = "{{ITEMS}}";
+	save("history/shorts_shelf", { reelShelfRenderer: tokenize(shelf, []) });
+	const lv = sitem.shortsLockupViewModel;
+	const id: string = lv.onTap.innertubeCommand.reelWatchEndpoint.videoId;
+	const title: string = lv.overlayMetadata.primaryText.content;
+	const views: string = lv.overlayMetadata.secondaryText.content;
+	for (const list of findAll(sitem, "listItems")) for (let i = list.length - 1; i >= 0; i--) if (!new Set([...keep, "Send feedback"]).has(itemTitle(list[i]))) list.splice(i, 1);
+	for (const k of ["inlinePopStateEntityKey", "indexInCollection", "stackedFrameData"]) delete lv[k];
+	const reel = lv.onTap.innertubeCommand.reelWatchEndpoint;
+	for (const k of ["playerParams", "params", "sequenceParams", "loggingContext", "ustreamerConfig"]) delete reel[k];
+	reel.thumbnail.thumbnails = "{{REEL_THUMBS}}";
+	lv.thumbnailViewModel.thumbnailViewModel.image.sources = "{{THUMBS}}";
+	lv.accessibilityText = "{{A11Y}}";
+	for (const fe of findAll(sitem, "feedbackEndpoint")) fe.feedbackToken = "{{REMOVE_TOKEN}}";
+	let si = dropKey(sitem, "playerParams");
+	si = strings(si, (x) => x.replace(/&pp=[^&"]*/, ""));
+	si = tokenize(si, [[id, "VIDEO_ID"], [title, "TITLE"], [views, "VIEWS_SHORT"]], [[id, "VIDEO_ID"]]);
+	save("item/shorts_lockup_history", si, [id, title]);
+
 	// signed out: the sign-in prompt (the device-history buttons are left out)
 	const out = pageOnly(pageVar(body("feed-history", /^001-/)));
 	delete out.contents.twoColumnBrowseResultsRenderer.secondaryContents;

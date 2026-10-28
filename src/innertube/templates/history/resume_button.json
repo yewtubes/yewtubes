@@ -1,0 +1,36 @@
+{
+	"buttonRenderer": {
+		"text": {
+			"runs": [
+				{
+					"text": "Turn on watch history"
+				}
+			]
+		},
+		"icon": {
+			"iconType": "PLAY_OUTLINED"
+		},
+		"targetId": "history-watch-pause-resume-toggle",
+		"serviceEndpoint": {
+			"commandMetadata": {
+				"webCommandMetadata": {
+					"sendPost": true,
+					"apiUrl": "/youtubei/v1/feedback"
+				}
+			},
+			"feedbackEndpoint": {
+				"feedbackToken": "{{RESUME_TOKEN}}",
+				"uiActions": {
+					"hideEnclosingContainer": false
+				},
+				"actions": [
+					{
+						"localWatchHistoryCommand": {
+							"localWatchHistoryCommandType": "LOCAL_WATCH_HISTORY_COMMAND_TYPE_RESUME"
+						}
+					}
+				]
+			}
+		}
+	}
+}

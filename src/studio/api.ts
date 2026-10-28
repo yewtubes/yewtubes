@@ -2,6 +2,7 @@
 // shared router. Every creator method acts for the signed-in channel only:
 // requests naming another channel or another channel's videos get nothing.
 
+import { CATEGORIES } from "../categories";
 import type { Viewer } from "../client/page";
 import { sql, textArray } from "../db";
 import { deleteMedia } from "../media/process";
@@ -160,6 +161,8 @@ route(
 		// with the chosen visibility in the same request
 		const privacy = PRIVACY[b.privacy?.newPrivacy ?? b.privacyState?.newPrivacy];
 		if (privacy && (!v.draft || publish)) set.visibility = privacy;
+		const category = Number(b.category?.newCategoryId);
+		if (CATEGORIES[category]) set.category_id = category;
 		const audience = b.madeForKids?.newMfk ?? b.targetedAudience?.newTargetedAudience;
 		if (audience) set.made_for_kids = /MFK$|CROSSWALK/.test(audience) && !/NOT_MFK/.test(audience);
 		// the thumbnail picker: a still or a custom image uploaded first

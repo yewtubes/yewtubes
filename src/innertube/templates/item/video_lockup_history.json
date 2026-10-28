@@ -33,7 +33,8 @@
 											"accessibilityContext": {
 												"label": "{{DURATION_LABEL}}"
 											}
-										}
+										},
+										"icon": "{{DURATION_ICON}}"
 									}
 								}
 							]
@@ -580,13 +581,15 @@
 					"innertubeCommand": {
 						"commandMetadata": {
 							"webCommandMetadata": {
-								"url": "/watch?v={{VIDEO_ID}}",
+								"url": "/watch?v={{VIDEO_ID}}{{RESUME_T}}",
 								"webPageType": "WEB_PAGE_TYPE_WATCH",
 								"rootVe": 3832
 							}
 						},
 						"watchEndpoint": {
-							"videoId": "{{VIDEO_ID}}"
+							"videoId": "{{VIDEO_ID}}",
+							"params": "{{RESUME_PARAMS}}",
+							"startTimeSeconds": "{{RESUME_SECONDS}}"
 						}
 					}
 				}

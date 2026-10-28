@@ -26,6 +26,7 @@ export type Video = {
 	playable: boolean;
 	width: number | null;
 	height: number | null;
+	category_id?: number;
 	subscriber_count?: number;
 };
 

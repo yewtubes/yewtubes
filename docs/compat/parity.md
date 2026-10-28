@@ -38,7 +38,7 @@ Every page, menu, dialog and workflow of the pinned YouTube desktop client and Y
 | `/` Home | logo, guide | out, in | home · `FEwhat_to_watch` richGrid · `browse` continuation | — | ✓✓✓✓ | browser verified | e2e:core, survey | Topic chips, Shorts shelf, personalised ranking |
 | `/results?search_query=` | masthead search | out, in | results · `search`, `/complete/search` | search history for signed-in viewers | ✓✓✓✓ | browser verified | e2e:core, survey | — |
 | `/results` filters (`sp=`) | Filters dialog | out, in | `search` with `params` | — | ✓✓✓✓ | browser verified | manual | — |
-| `/watch?v=` | everywhere | out, in | watch · `next`, `player`, `get_watch`, `/videoplayback` | history, resume position | ✓✓✓✓ | browser verified | e2e:core, e2e:playback | Captions, chapters, storyboards, end screens. In-page navigation autoplays even when the player script loads after the click (patch `player-first-party-host`) |
+| `/watch?v=` | everywhere | out, in | watch · `next`, `player`, `get_watch`, `/videoplayback` | history, resume position, start time (`t=`, `playbackStartConfig`) | ✓✓✓✓ | browser verified | e2e:core, e2e:playback | Captions, chapters, storyboards, end screens. In-page navigation autoplays even when the player script loads after the click (patch `player-first-party-host`) |
 | `/watch?v=&list=` | playlist Play all | out, in | watch · `next` playlist panel | — | ✓✓✓✓ | browser verified | manual | — |
 | `/@handle`, `/channel/UC…` Home / Videos / Playlists | owner links, search | out, in | channel · `browse UC…` with tabs, About panel continuation | — | ✓✓✓✓ | browser verified | e2e:core, manual | — |
 | Channel Shorts / Live / Posts / Store / search tabs | channel tabs | out, in | channel · `browse UC…` params | — | – | captured | site-in `47-…` | Tabs are left out of the template until they have data |
@@ -48,7 +48,7 @@ Every page, menu, dialog and workflow of the pinned YouTube desktop client and Y
 | `/feed/subscriptions` | guide | in | browse · `FEsubscriptions` | subscriptions | ✓✓✓✓ | browser verified | survey, manual | — |
 | `/feed/subscriptions` signed out | guide | out | browse · sign-in promo | — | ✓✓✓✓ | browser verified | survey | — |
 | `/feed/you` | guide | out, in | browse · `FEyou` (sign-in promo when out) | — | ✓✓✓✓ | browser verified | survey | — |
-| `/feed/history` | guide, You | out, in | browse · `FEhistory`, `feedback` (remove, clear) | watch_history | ✓✓✓✓ | browser verified | e2e:core, survey | Pause history; search history view (`?view=search`) shows watch history |
+| `/feed/history` | guide, You | out, in | browse · `FEhistory`, `feedback` (remove, clear, pause, turn on) | watch_history, users.history_paused, videos.category_id | ✓✓✓✓ | browser verified | e2e:core, survey | All/Videos/Shorts/Music chips, each day's Shorts in a reel shelf. The paused toggle ("Turn on watch history") has no capture: it acts without a confirm dialog. My Activity links lead to `/myaccount/activity`. Search history view (`?view=search`) shows watch history |
 | `/feed/playlists` | guide, You | in (out → sign-in) | browse · `FEplaylist_aggregation` | playlists, saved playlists | ✓✓✓✓ | browser verified | survey | — |
 | `/feed/channels` | guide | in (out → sign-in) | browse · `FEchannels` | subscriptions | ✓✓✓✓ | browser verified | survey | — |
 | `/feed/downloads` | guide (hidden) | in | — | — | ✗ | captured | site-in `11-…` | Needs the offline Downloads page; hidden from the guide until served |
@@ -72,6 +72,7 @@ Every page, menu, dialog and workflow of the pinned YouTube desktop client and Y
 | `/signin`, `/register` | Sign in button | out | YewTube's own pages (Google-style) | users, sessions | ✓–✓✓ | browser verified | e2e:core | — |
 | `/signin?add=1` | Switch account > Add account | in | own page | sessions (`OT_ACCOUNTS`) | ✓–✓✓ | browser verified | e2e:accounts | — |
 | `/myaccount` | account menu "YewTube account", "Your data in YouTube" | in | own page | users, sessions | ✓–✓✓ | browser verified | manual | — |
+| `/myaccount/activity` (`/comments`, `/posts`, `/live-chat`) | History's "Manage all history", Comments, Posts, Live chat; the dialogs' My Activity links | in | own page (in place of Google's My Activity) | users.history_paused, watch_history, comments | ✓–✓✓ | browser verified | manual | Posts and live chat list nothing yet: the instance has no posts or live streams |
 | `/feedback` | account menu Send feedback (main site and Studio) | out, in | own page | feedback | ✓–✓✓ | browser verified | e2e:accounts | — |
 
 ## Main client: settings (`/account*`)

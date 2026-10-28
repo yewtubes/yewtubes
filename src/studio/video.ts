@@ -6,6 +6,7 @@
 // for a new live stream (its live-creation dialog), with the fields for an
 // upload instead of a stream. Studio reads it through a field mask.
 
+import { categoryEnum } from "../categories";
 import { PUBLIC_ORIGIN, STUDIO_ORIGIN } from "../config";
 import { sql, textArray } from "../db";
 import { isShort } from "../data";
@@ -39,13 +40,14 @@ export type VideoRow = {
 	draft: boolean;
 	made_for_kids: boolean | null;
 	original_filename: string;
+	category_id: number;
 	received?: string | null;
 	size?: string | null;
 };
 
 export const VIDEO_COLUMNS = sql`v.id, v.channel_id, v.title, v.description, v.visibility, v.status, v.playable, v.error, v.source_path, v.thumbnail_choice,
 	(select t.path from video_thumbnails t where t.video_id = v.id and t.name = 'hqdefault') as thumb_path, v.duration_ms, v.view_count, v.like_count, v.comment_count,
-	v.created_at, v.published_at, v.draft, v.made_for_kids, v.original_filename, v.width, v.height,
+	v.created_at, v.published_at, v.draft, v.made_for_kids, v.original_filename, v.width, v.height, v.category_id,
 	(select t.received from upload_transfers t where t.video_id = v.id order by t.created_at desc limit 1) as received,
 	(select t.size from upload_transfers t where t.video_id = v.id order by t.created_at desc limit 1) as size`;
 
@@ -88,7 +90,7 @@ export function creatorVideo(v: VideoRow): Record<string, unknown> {
 			effectiveRating: "VIDEO_TARGETED_AUDIENCE_ALL",
 			imposer: "VIDEO_TARGETED_AUDIENCE_IMPOSER_UNSPECIFIED",
 		},
-		category: "CREATOR_VIDEO_CATEGORY_PEOPLE",
+		category: categoryEnum(v.category_id),
 		claimDetails: { isEmbedDisabled: false },
 		commentFilter: "VIDEO_COMMENT_FILTER_NONE",
 		commentsDisabledInternally: false,

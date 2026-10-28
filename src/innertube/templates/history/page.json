@@ -140,7 +140,26 @@
 																"bold": true
 															},
 															{
-																"text": "\n\nYour YouTube watch history will be cleared from all YouTube apps on all devices."
+																"text": "\n\nYour YouTube watch history will be cleared from all YouTube apps on all devices.\n\nYour video recommendations will be reset, but may still be influenced by activity on other Google products. To learn more, visit "
+															},
+															{
+																"text": "My Activity",
+																"navigationEndpoint": {
+																	"commandMetadata": {
+																		"webCommandMetadata": {
+																			"url": "{{ACTIVITY_URL}}",
+																			"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+																			"rootVe": 83769
+																		}
+																	},
+																	"urlEndpoint": {
+																		"url": "{{ACTIVITY_URL}}",
+																		"target": "TARGET_NEW_WINDOW"
+																	}
+																}
+															},
+															{
+																"text": "."
 															}
 														]
 													}
@@ -212,6 +231,113 @@
 									}
 								}
 							}
+						},
+						"{{PAUSE_TOGGLE}}",
+						{
+							"buttonRenderer": {
+								"style": "STYLE_TEXT",
+								"size": "SIZE_DEFAULT",
+								"isDisabled": false,
+								"text": {
+									"runs": [
+										{
+											"text": "Manage all history"
+										}
+									]
+								},
+								"icon": {
+									"iconType": "SETTINGS"
+								},
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"url": "{{ACTIVITY_URL}}",
+											"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+											"rootVe": 83769
+										}
+									},
+									"urlEndpoint": {
+										"url": "{{ACTIVITY_URL}}",
+										"target": "TARGET_NEW_WINDOW"
+									}
+								},
+								"targetId": "history-my-activity"
+							}
+						},
+						{
+							"compactLinkRenderer": {
+								"title": {
+									"runs": [
+										{
+											"text": "Comments"
+										}
+									]
+								},
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"url": "{{ACTIVITY_COMMENTS_URL}}",
+											"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+											"rootVe": 83769
+										}
+									},
+									"urlEndpoint": {
+										"url": "{{ACTIVITY_COMMENTS_URL}}",
+										"target": "TARGET_NEW_WINDOW"
+									}
+								},
+								"style": "COMPACT_LINK_STYLE_TYPE_HISTORY_MY_ACTIVITY_LINK"
+							}
+						},
+						{
+							"compactLinkRenderer": {
+								"title": {
+									"runs": [
+										{
+											"text": "Posts"
+										}
+									]
+								},
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"url": "{{ACTIVITY_POSTS_URL}}",
+											"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+											"rootVe": 83769
+										}
+									},
+									"urlEndpoint": {
+										"url": "{{ACTIVITY_POSTS_URL}}",
+										"target": "TARGET_NEW_WINDOW"
+									}
+								},
+								"style": "COMPACT_LINK_STYLE_TYPE_HISTORY_MY_ACTIVITY_LINK"
+							}
+						},
+						{
+							"compactLinkRenderer": {
+								"title": {
+									"runs": [
+										{
+											"text": "Live chat"
+										}
+									]
+								},
+								"navigationEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"url": "{{ACTIVITY_LIVE_CHAT_URL}}",
+											"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+											"rootVe": 83769
+										}
+									},
+									"urlEndpoint": {
+										"url": "{{ACTIVITY_LIVE_CHAT_URL}}",
+										"target": "TARGET_NEW_WINDOW"
+									}
+								},
+								"style": "COMPACT_LINK_STYLE_TYPE_HISTORY_MY_ACTIVITY_LINK"
+							}
 						}
 					]
 				}
@@ -274,6 +400,56 @@
 														}
 													},
 													"accessibilityLabel": "Videos"
+												}
+											},
+											{
+												"chipViewModel": {
+													"text": "Shorts",
+													"selected": "{{CHIP_SHORTS_SELECTED}}",
+													"displayType": "CHIP_VIEW_MODEL_DISPLAY_TYPE_UNSPECIFIED",
+													"tapCommand": {
+														"innertubeCommand": {
+															"commandMetadata": {
+																"webCommandMetadata": {
+																	"url": "/feed/history",
+																	"webPageType": "WEB_PAGE_TYPE_BROWSE",
+																	"rootVe": 6827,
+																	"apiUrl": "/youtubei/v1/browse"
+																}
+															},
+															"browseEndpoint": {
+																"browseId": "FEhistory",
+																"params": "oggECgIQAQ%3D%3D",
+																"navigationType": "BROWSE_NAVIGATION_TYPE_LOAD_IN_PLACE"
+															}
+														}
+													},
+													"accessibilityLabel": "Shorts"
+												}
+											},
+											{
+												"chipViewModel": {
+													"text": "Music",
+													"selected": "{{CHIP_MUSIC_SELECTED}}",
+													"displayType": "CHIP_VIEW_MODEL_DISPLAY_TYPE_UNSPECIFIED",
+													"tapCommand": {
+														"innertubeCommand": {
+															"commandMetadata": {
+																"webCommandMetadata": {
+																	"url": "/feed/history",
+																	"webPageType": "WEB_PAGE_TYPE_BROWSE",
+																	"rootVe": 6827,
+																	"apiUrl": "/youtubei/v1/browse"
+																}
+															},
+															"browseEndpoint": {
+																"browseId": "FEhistory",
+																"params": "oggECgIIAQ%3D%3D",
+																"navigationType": "BROWSE_NAVIGATION_TYPE_LOAD_IN_PLACE"
+															}
+														}
+													},
+													"accessibilityLabel": "Music"
 												}
 											}
 										],

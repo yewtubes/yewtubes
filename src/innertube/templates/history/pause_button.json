@@ -1,0 +1,134 @@
+{
+	"buttonRenderer": {
+		"text": {
+			"runs": [
+				{
+					"text": "Pause watch history"
+				}
+			]
+		},
+		"icon": {
+			"iconType": "PAUSE_OUTLINED"
+		},
+		"navigationEndpoint": {
+			"commandMetadata": {
+				"webCommandMetadata": {
+					"ignoreNavigation": true
+				}
+			},
+			"confirmDialogEndpoint": {
+				"content": {
+					"confirmDialogRenderer": {
+						"title": {
+							"runs": [
+								{
+									"text": "Pause watch history?"
+								}
+							]
+						},
+						"confirmEndpoint": {
+							"commandMetadata": {
+								"webCommandMetadata": {
+									"sendPost": true,
+									"apiUrl": "/youtubei/v1/feedback"
+								}
+							},
+							"feedbackEndpoint": {
+								"feedbackToken": "{{PAUSE_TOKEN}}",
+								"uiActions": {
+									"hideEnclosingContainer": false
+								},
+								"actions": [
+									{
+										"localWatchHistoryCommand": {
+											"localWatchHistoryCommandType": "LOCAL_WATCH_HISTORY_COMMAND_TYPE_PAUSE"
+										}
+									}
+								]
+							}
+						},
+						"dialogMessages": [
+							{
+								"runs": [
+									{
+										"text": "{{VIEWER_NAME}} ({{VIEWER_AT_HANDLE}})",
+										"bold": true
+									},
+									{
+										"text": "\n\nPausing YouTube watch history can make it harder to find videos you watched, and you may see fewer recommendations for new videos in YouTube and other Google products.\n\nRemember, pausing this setting doesn't delete any previous activity, but you can view, edit and delete your private "
+									},
+									{
+										"text": "YouTube watch history",
+										"navigationEndpoint": {
+											"commandMetadata": {
+												"webCommandMetadata": {
+													"url": "{{ACTIVITY_URL}}",
+													"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+													"rootVe": 83769
+												}
+											},
+											"urlEndpoint": {
+												"url": "{{ACTIVITY_URL}}",
+												"target": "TARGET_NEW_WINDOW"
+											}
+										}
+									},
+									{
+										"text": " data anytime. When you pause and clear your watch history, YouTube features that rely on history to personalize your experience are disabled."
+									}
+								]
+							}
+						],
+						"confirmButton": {
+							"buttonRenderer": {
+								"style": "STYLE_BLUE_TEXT",
+								"size": "SIZE_DEFAULT",
+								"isDisabled": false,
+								"text": {
+									"simpleText": "Pause"
+								},
+								"serviceEndpoint": {
+									"commandMetadata": {
+										"webCommandMetadata": {
+											"sendPost": true,
+											"apiUrl": "/youtubei/v1/feedback"
+										}
+									},
+									"feedbackEndpoint": {
+										"feedbackToken": "{{PAUSE_TOKEN}}",
+										"uiActions": {
+											"hideEnclosingContainer": false
+										},
+										"actions": [
+											{
+												"localWatchHistoryCommand": {
+													"localWatchHistoryCommandType": "LOCAL_WATCH_HISTORY_COMMAND_TYPE_PAUSE"
+												}
+											}
+										]
+									}
+								}
+							}
+						},
+						"cancelButton": {
+							"buttonRenderer": {
+								"style": "STYLE_TEXT",
+								"size": "SIZE_DEFAULT",
+								"isDisabled": false,
+								"text": {
+									"runs": [
+										{
+											"text": "Cancel"
+										}
+									]
+								}
+							}
+						},
+						"primaryIsCancel": false
+					}
+				}
+			}
+		},
+		"targetId": "history-watch-pause-resume-toggle"
+	}
+}

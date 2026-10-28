@@ -1,1 +1,4 @@
 https://www.gstatic.com/youtube/img/lottie/audio_indicator/audio_indicator_v2.json
+https://www.gstatic.com/youtube/img/promos/0186cae4257a5381e8ca4d2bfdf956a6f6054fbde96b95c09cd344c7bae717d3_1280x720.jpeg
+https://www.gstatic.com/youtube/img/promos/5a6a021f2fbb1dfb638d6c5ceff735e50a4267a1a038ad3453ddfdcf09581439_1280x720.jpeg
+https://www.gstatic.com/youtube/img/promos/eac856335d5aaf4e8ffa99072f444cf2d45b6f8f351105cf3e041f670c53678d_1280x720.jpeg

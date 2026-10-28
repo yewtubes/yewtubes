@@ -25,10 +25,10 @@ function page(videos: Video[], viewer: Viewer, next: Record<string, unknown>) {
 }
 
 // a Short on home's shelf, with its whole first frame (process.ts frame0)
-export function shortLockup(v: Video, viewer: Viewer) {
+export function shortVars(v: Video, viewer: Viewer) {
 	const scale = Math.min(1, 720 / (v.height || 720));
 	const frame = [{ url: `${PUBLIC_ORIGIN}/vi/${v.id}/frame0.jpg`, width: Math.round((v.width || 405) * scale), height: Math.round((v.height || 720) * scale) }];
-	return make("item/shorts_lockup_rich", {
+	return {
 		...baseVars(viewer, `/shorts/${v.id}`),
 		VIDEO_ID: v.id,
 		TITLE: v.title,
@@ -36,8 +36,9 @@ export function shortLockup(v: Video, viewer: Viewer) {
 		A11Y: `${v.title}, ${countLabel(v.view_count, "view")} - play Short`,
 		THUMBS: frame,
 		REEL_THUMBS: frame,
-	});
+	};
 }
+export const shortLockup = (v: Video, viewer: Viewer) => make("item/shorts_lockup_rich", shortVars(v, viewer));
 
 // the chips YouTube shows on every home feed (topic chips need topics, which
 // videos here don't have); Watched and New to you need a signed-in viewer

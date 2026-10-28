@@ -7,7 +7,7 @@ import { sql } from "./db";
 import type { Channel, Video } from "./innertube/r";
 
 const VIDEO_COLUMNS = sql`v.id, v.title, v.description, v.channel_id, c.title as channel_title, c.handle as channel_handle, c.avatar_path as channel_avatar,
-	v.duration_ms, v.view_count::int as view_count, v.like_count, v.comment_count, v.published_at, v.created_at, v.visibility, v.status, v.playable, v.width, v.height`;
+	v.duration_ms, v.view_count::int as view_count, v.like_count, v.comment_count, v.published_at, v.created_at, v.visibility, v.status, v.playable, v.width, v.height, v.category_id`;
 
 export async function getVideo(id: string, viewer: Viewer): Promise<Video | undefined> {
 	const [v] = await sql`select ${VIDEO_COLUMNS}, (select count(*)::int from subscriptions s where s.channel_id = v.channel_id) as subscriber_count

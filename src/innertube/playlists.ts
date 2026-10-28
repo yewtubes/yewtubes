@@ -20,7 +20,7 @@ const PAGE = 100;
 type Playlist = { id: string; user_id: string; title: string; description: string; visibility: "public" | "unlisted" | "private"; video_order: number; kind: "user" | "watch_later" | "liked"; updated_at: Date; video_count: number; first_video: string | null; owner_channel: string; owner_title: string; owner_handle: string };
 
 const VIDEO_COLUMNS = sql`v.id, v.title, v.description, v.channel_id, c.title as channel_title, c.handle as channel_handle, c.avatar_path as channel_avatar,
-	v.duration_ms, v.view_count::int as view_count, v.like_count, v.comment_count, v.published_at, v.created_at, v.visibility, v.status, v.width, v.height`;
+	v.duration_ms, v.view_count::int as view_count, v.like_count, v.comment_count, v.published_at, v.created_at, v.visibility, v.status, v.width, v.height, v.category_id`;
 // entries a viewer may see in a playlist
 const PLAYABLE = (viewer: Viewer) => sql`v.deleted_at is null and v.playable and (v.visibility <> 'private' or v.channel_id = ${viewer?.channelId ?? ""})`;
 

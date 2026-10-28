@@ -13,7 +13,7 @@ import { recordWatch } from "./history";
 route("player", async ({ body, viewer }) => {
 	const id = body.videoId;
 	if (!isVideoId(id)) throw new ApiError(400, "Invalid video id");
-	return playerResponse(await getVideo(id, viewer), viewer, id);
+	return playerResponse(await getVideo(id, viewer), viewer, id, Number(body.startTimeSecs) || undefined);
 });
 
 async function next(body: any, viewer: any) {
@@ -47,7 +47,7 @@ route("get_watch", async ({ body, viewer }) => {
 	const video = await getVideo(id, viewer);
 	if (video && viewer) void recordWatch(viewer, video.id);
 	return [
-		{ responseContext: responseContext(viewer), playerResponse: await playerResponse(video, viewer, id), responseType: "RESPONSE_TYPE_PLAYER", subStreamResponseCompleted: true },
+		{ responseContext: responseContext(viewer), playerResponse: await playerResponse(video, viewer, id, Number(p.startTimeSecs) || undefined), responseType: "RESPONSE_TYPE_PLAYER", subStreamResponseCompleted: true },
 		{ responseContext: responseContext(viewer), watchNextResponse: await next({ ...n, videoId: id }, viewer), responseType: "RESPONSE_TYPE_WATCH_NEXT", subStreamResponseCompleted: true },
 	];
 });

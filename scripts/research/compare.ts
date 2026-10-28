@@ -21,7 +21,7 @@ const cookies = opt("--cookies");
 const [login, password] = (opt("--login") ?? "bob:yewtube-demo").split(":");
 const narrow = args.includes("--narrow");
 const signedOut = args.includes("--signed-out");
-const pages = args.filter((a, i) => a.includes("|") && !args[i - 1]?.startsWith("--")).map((a) => {
+const pages = args.filter((a, i) => a.includes("|") && !["--cookies", "--login"].includes(args[i - 1])).map((a) => {
 	const [name, live, ours] = a.split("|");
 	return { name, live, ours: !ours || ours === "-" ? live : ours };
 });

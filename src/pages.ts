@@ -4,7 +4,7 @@
 import type { PageData, Viewer } from "./client/page";
 import { getVideo } from "./data";
 import { isVideoId } from "./ids";
-import { playerResponse } from "./innertube/player";
+import { playerResponse, startSeconds } from "./innertube/player";
 import { watchEndpoint } from "./innertube/r";
 import { watchNext } from "./innertube/watch";
 import { playlistPanel } from "./innertube/playlists";
@@ -25,15 +25,15 @@ export async function pageFor(url: URL, viewer: Viewer): Promise<PageData | Resp
 		const next = await watchNext(id, viewer, { playlist });
 		const video = next?.video ?? (await getVideo(id, viewer));
 		if (video && viewer) void recordWatch(viewer, video.id);
-		const t = Number.parseInt(url.searchParams.get("t") ?? "", 10);
+		const t = startSeconds(url.searchParams.get("t"));
 		return {
 			kind: "watch",
 			url: pageUrl,
 			title: video?.title ?? "",
 			description: video?.description.slice(0, 160),
 			initialData: next?.response ?? { contents: {} },
-			playerResponse: await playerResponse(video, viewer, id),
-			command: watchEndpoint(id, { playlistId: list, index, startTimeSeconds: Number.isFinite(t) ? t : undefined }),
+			playerResponse: await playerResponse(video, viewer, id, t),
+			command: watchEndpoint(id, { playlistId: list, index, startTimeSeconds: t }),
 			thumbnail: video ? `/vi/${id}/hqdefault.jpg` : undefined,
 		};
 	}

@@ -7,6 +7,7 @@
 // itag 18 fallback. playbackTracking points the player's stats pings at
 // /api/stats/*, which counts views.
 
+import { categoryName } from "../categories";
 import { PUBLIC_ORIGIN } from "../config";
 import { sql } from "../db";
 import type { Viewer } from "../client/page";
@@ -90,7 +91,17 @@ export function unplayable(status: "ERROR" | "UNPLAYABLE" | "LOGIN_REQUIRED", re
 	};
 }
 
-export async function playerResponse(video: Video | undefined, viewer: Viewer, requestedId?: string): Promise<Record<string, unknown>> {
+// a watch URL's t= (11, 11s, 1m5s, 1h2m3s) in seconds
+export function startSeconds(t: string | null | undefined): number | undefined {
+	const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/.exec(t ?? "");
+	if (!m || !t) return undefined;
+	const s = Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0);
+	return s > 0 ? s : undefined;
+}
+
+// start: where playback begins (the URL's t=, the player request's
+// startTimeSecs), which the player takes from playerConfig.playbackStartConfig
+export async function playerResponse(video: Video | undefined, viewer: Viewer, requestedId?: string, start?: number): Promise<Record<string, unknown>> {
 	if (!video) {
 		return { responseContext: responseContext(viewer), playabilityStatus: unplayable("ERROR", "This video isn't available anymore"), trackingParams: "" };
 	}
@@ -141,6 +152,7 @@ export async function playerResponse(video: Video | undefined, viewer: Viewer, r
 			streamSelectionConfig: { maxBitrate: "8000000" },
 			mediaCommonConfig: { dynamicReadaheadConfig: { maxReadAheadMediaTimeMs: 120000, minReadAheadMediaTimeMs: 15000, readAheadGrowthRateMs: 1000 } },
 			webPlayerConfig: { useCobaltTvosDash: true },
+			...(start && start > 0 && start * 1000 < (video.duration_ms ?? 0) ? { playbackStartConfig: { startSeconds: start } } : {}),
 		},
 		microformat: {
 			playerMicroformatRenderer: {
@@ -156,7 +168,7 @@ export async function playerResponse(video: Video | undefined, viewer: Viewer, r
 				isUnlisted: video.visibility === "unlisted",
 				hasYpcMetadata: false,
 				viewCount: String(video.view_count),
-				category: "People & Blogs",
+				category: categoryName(video.category_id),
 				publishDate: published,
 				ownerChannelName: video.channel_title,
 				uploadDate: published,

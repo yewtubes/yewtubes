@@ -35,7 +35,8 @@
 													"accessibilityContext": {
 														"label": "{{DURATION_LABEL}}"
 													}
-												}
+												},
+												"icon": "{{DURATION_ICON}}"
 											}
 										}
 									]

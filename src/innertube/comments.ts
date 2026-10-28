@@ -274,15 +274,18 @@ route(
 				const k = key("toolbarstate", t.c);
 				const [{ hearted_at }] = await sql`select hearted_at from comments where id = ${t.c}`;
 				mutations.push({ entityKey: k, type: "ENTITY_MUTATION_TYPE_REPLACE", payload: { engagementToolbarStateEntityPayload: { key: k, likeState: t.a === "like" ? "TOOLBAR_LIKE_STATE_LIKED" : "TOOLBAR_LIKE_STATE_INDIFFERENT", heartState: hearted_at ? "TOOLBAR_HEART_STATE_HEARTED" : "TOOLBAR_HEART_STATE_UNHEARTED" } } });
-			} else if (t.a === "delete") {
-				const [c] = await sql`update comments set deleted_at = now() where id = ${t.c} and author_channel_id = ${viewer!.channelId} and deleted_at is null returning video_id, parent_id`;
-				if (c) {
-					await sql`update videos set comment_count = greatest(0, comment_count - 1) where id = ${c.video_id}`;
-					if (c.parent_id) await sql`update comments set reply_count = greatest(0, reply_count - 1) where id = ${c.parent_id}`;
-				}
-			}
+			} else if (t.a === "delete") await deleteOwnComment(viewer!.channelId, t.c);
 		}
 		return { responseContext: responseContext(viewer), actionResults: [{ status: "STATUS_SUCCEEDED" }], ...entityUpdate(mutations) };
 	},
 	{ mutation: true },
 );
+
+// the author deleting their comment (the comment's menu, My Activity)
+export async function deleteOwnComment(channelId: string, id: string): Promise<boolean> {
+	const [c] = await sql`update comments set deleted_at = now() where id = ${id} and author_channel_id = ${channelId} and deleted_at is null returning video_id, parent_id`;
+	if (!c) return false;
+	await sql`update videos set comment_count = greatest(0, comment_count - 1) where id = ${c.video_id}`;
+	if (c.parent_id) await sql`update comments set reply_count = greatest(0, reply_count - 1) where id = ${c.parent_id}`;
+	return true;
+}

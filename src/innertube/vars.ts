@@ -2,6 +2,7 @@
 // that shows a video, channel or playlist is filled from these, so the same
 // value reads the same everywhere.
 
+import { MUSIC_CATEGORY } from "../categories";
 import { INSTANCE_NAME, PUBLIC_ORIGIN, STUDIO_ORIGIN } from "../config";
 import type { Viewer } from "../client/page";
 import { type Channel, type Video, avatarUrl, compact, countLabel, duration, durationLabel, grouped, lockupSources, shortAgo, ago, videoThumbnails } from "./r";
@@ -21,6 +22,8 @@ export function videoVars(v: Video): Vars {
 		TITLE: v.title,
 		DURATION: duration(v.duration_ms),
 		DURATION_LABEL: durationLabel(v.duration_ms),
+		// YouTube's music note before a Music video's duration
+		DURATION_ICON: v.category_id === MUSIC_CATEGORY ? { sources: [{ clientResource: { imageName: "MUSIC" } }] } : undefined,
 		VIEWS: v.view_count ? compact(v.view_count) : "No views",
 		VIEWS_LABEL: countLabel(v.view_count, "view"),
 		VIEWS_FULL: v.view_count === 1 ? "1 view" : `${grouped(v.view_count)} views`,

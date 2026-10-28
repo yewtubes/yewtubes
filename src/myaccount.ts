@@ -9,6 +9,7 @@
 // token; each ends in a redirect back to the page with a `done` code.
 
 import { timingSafeEqual } from "node:crypto";
+import { activityAction, activityPage } from "./activity";
 import { savedAppearance } from "./appearance";
 import { endSession, forgetSession, parseCookies, signedOutCookies, switchSession } from "./auth";
 import type { Viewer } from "./client/page";
@@ -18,7 +19,7 @@ import { avatarUrl } from "./innertube/r";
 import { deleteMedia } from "./media/process";
 import { rateLimit } from "./ratelimit";
 
-const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+export const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 const DONE: Record<string, [string, boolean?]> = {
 	password: ["Password changed. Your other sessions were signed out."],
@@ -73,6 +74,9 @@ th{font-weight:500;color:var(--muted)}
 .counts b{display:block;font-size:22px;line-height:28px;font-weight:500}
 .notice{padding:12px 16px;border-radius:8px;margin:0 0 16px;background:var(--soft)}
 .notice.bad{color:var(--err)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.tabs a,.tabs b{padding:6px 12px;border-radius:8px;background:var(--soft);color:inherit;text-decoration:none;font-weight:500}
+.tabs b{background:var(--btn);color:var(--on-btn)}
 @media (max-width:600px){dl{grid-template-columns:1fr;gap:2px}dd{margin-bottom:12px}.counts{grid-template-columns:repeat(2,1fr);gap:12px}section{padding:16px}}
 `;
 
@@ -103,11 +107,11 @@ function device(ua: string | null): string {
 	const os = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iOS" : /Mac OS X/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
 	return os ? `${browser} on ${os}` : browser;
 }
-const when = (d: Date | null) => (d ? new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }) + " UTC" : "");
+export const when = (d: Date | null) => (d ? new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }) + " UTC" : "");
 
 export const header = (title: string, href: string) => `<header><img src="/_ot/yewtube-logo-96.png" alt=""><a href="${esc(href)}">${esc(title)}</a><a class="back" href="/">Back to ${esc(INSTANCE_NAME)}</a></header>`;
 
-const form = (viewer: NonNullable<Viewer>, action: string, inner: string, attrs = "") =>
+export const form = (viewer: NonNullable<Viewer>, action: string, inner: string, attrs = "") =>
 	`<form method="post" action="${action}"${attrs}><input type="hidden" name="token" value="${esc(viewer.apiSecret)}">${inner}</form>`;
 
 async function accountPage(req: Request, url: URL, viewer: NonNullable<Viewer>) {
@@ -148,7 +152,7 @@ ${form(viewer, "/myaccount/password", `<label for="cur">Current password</label>
 <div class="table"><table><thead><tr><th>Device</th><th>Signed in</th><th>Last active</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
 ${sessions.length > 1 ? form(viewer, "/myaccount/sessions/end-others", `<button class="quiet" style="margin-top:16px">Sign out of all other sessions</button>`) : ""}</section>
 <section id="your-data"><h2>Your data on ${esc(INSTANCE_NAME)}</h2><p class="sub">What this instance keeps for your account. Each opens where you can review or remove it.</p>
-<div class="counts">${count(n.videos, "Videos", `${STUDIO_ORIGIN}/channel/${viewer.channelId}/videos`)}${count(n.playlists, "Playlists", "/feed/playlists")}${count(n.comments, "Comments", `${STUDIO_ORIGIN}/channel/${viewer.channelId}/comments`)}${count(n.subscriptions, "Subscriptions", "/feed/channels")}${count(n.history, "Watch history", "/feed/history")}${count(n.likes, "Liked videos", "/playlist?list=LL")}</div></section>
+<div class="counts">${count(n.videos, "Videos", `${STUDIO_ORIGIN}/channel/${viewer.channelId}/videos`)}${count(n.playlists, "Playlists", "/feed/playlists")}${count(n.comments, "Comments", "/myaccount/activity/comments")}${count(n.subscriptions, "Subscriptions", "/feed/channels")}${count(n.history, "Watch history", "/feed/history")}${count(n.likes, "Liked videos", "/playlist?list=LL")}</div></section>
 <section id="delete"><h2>Delete your account</h2><p class="sub">Deletes your account and channel from ${esc(INSTANCE_NAME)}: your videos, playlists, comments, subscriptions and history. This can't be undone.</p>
 ${form(viewer, "/myaccount/delete", `<label for="delpw">Password</label><input id="delpw" name="password" type="password" autocomplete="current-password" required>
 <label class="check"><input type="checkbox" name="confirm" value="yes" required> I understand that my account and everything in it will be deleted</label>
@@ -174,7 +178,11 @@ export async function myAccountRoutes(req: Request, url: URL, viewer: Viewer): P
 	const path = url.pathname;
 	if (path !== "/myaccount" && !path.startsWith("/myaccount/")) return undefined;
 	if (!viewer) return req.method === "GET" ? Response.redirect(`/signin?next=${encodeURIComponent(path + url.search)}`, 302) : new Response("forbidden", { status: 403 });
-	if (req.method === "GET") return path === "/myaccount" ? accountPage(req, url, viewer) : new Response("not found", { status: 404 });
+	if (req.method === "GET") {
+		if (path === "/myaccount") return accountPage(req, url, viewer);
+		if (path === "/myaccount/activity" || path.startsWith("/myaccount/activity/")) return activityPage(req, url, viewer, path.slice("/myaccount/activity".length));
+		return new Response("not found", { status: 404 });
+	}
 	if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
 	// forms from this origin's own page only
 	const origin = req.headers.get("origin");
@@ -185,6 +193,8 @@ export async function myAccountRoutes(req: Request, url: URL, viewer: Viewer): P
 	const get = (k: string) => String(f?.get(k) ?? "");
 	if (!sameToken(get("token"), viewer.apiSecret)) return new Response("forbidden", { status: 403 });
 
+	const activity = await activityAction(path, get, viewer);
+	if (activity) return activity;
 	if (path === "/myaccount/sessions/end") {
 		const sid = get("session");
 		const [s] = await sql`select id from sessions where id = ${sid} and user_id = ${viewer.userId}`;

@@ -1,0 +1,62 @@
+{
+	"reelShelfRenderer": {
+		"title": {
+			"runs": [
+				{
+					"text": "Shorts"
+				}
+			]
+		},
+		"button": {
+			"menuRenderer": {
+				"items": [
+					{
+						"menuNavigationItemRenderer": {
+							"text": {
+								"runs": [
+									{
+										"text": "Send feedback"
+									}
+								]
+							},
+							"icon": {
+								"iconType": "FEEDBACK"
+							},
+							"navigationEndpoint": {
+								"commandMetadata": {
+									"webCommandMetadata": {
+										"ignoreNavigation": true
+									}
+								},
+								"userFeedbackEndpoint": {
+									"additionalDatas": [
+										{
+											"userFeedbackEndpointProductSpecificValueData": {
+												"key": "lockup",
+												"value": "shelf"
+											}
+										}
+									]
+								}
+							},
+							"accessibility": {
+								"accessibilityData": {
+									"label": "Send feedback"
+								}
+							}
+						}
+					}
+				],
+				"accessibility": {
+					"accessibilityData": {
+						"label": "More actions"
+					}
+				}
+			}
+		},
+		"items": "{{ITEMS}}",
+		"icon": {
+			"iconType": "YOUTUBE_SHORTS_BRAND_24"
+		}
+	}
+}

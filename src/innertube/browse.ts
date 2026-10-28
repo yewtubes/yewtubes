@@ -97,7 +97,7 @@ async function continuation(token: string, viewer: Viewer) {
 	if (t.k === "home") [items, target] = [await homeItems(viewer, t.o, homeFilter(t.f)), "browse-feedFEwhat_to_watch"];
 	else if (t.k === "homechip") return { responseContext: responseContext(viewer), onResponseReceivedActions: [await homeChipReload(viewer, homeFilter(t.f))] };
 	else if (t.k === "subs") [items, target] = [await subscriptionsItems(viewer, t.o), "browse-feedFEsubscriptions"];
-	else if (t.k === "history") return historyContinuation(viewer, t.o, t.q);
+	else if (t.k === "history") return historyContinuation(viewer, t.o, t.q, t.f);
 	else if (t.k === "plfeed" || t.k === "chfeed") {
 		if (!viewer) throw new ApiError(401, "Sign in to do this.", "authError");
 		return t.k === "plfeed" ? playlistsReload(viewer, { k: "plfeed", s: Number(t.s) || 0, f: t.f }) : channelsReload(viewer, Number(t.s) || 0);
