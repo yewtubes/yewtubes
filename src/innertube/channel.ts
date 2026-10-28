@@ -120,7 +120,13 @@ async function playlistShelf(viewer: Viewer, vars: Vars, id: string) {
 	if (!p || p.visibility === "private") return undefined;
 	const videos = await markWatched(viewer, await playlistVideos(p, viewer, 12, 0));
 	if (!videos.length) return undefined;
-	return make("channel/playlist_shelf", { ...vars, PLAYLIST_ID: p.id, SHELF_TITLE: p.title, FIRST_VIDEO_ID: videos[0].id, ITEMS: videos.map((v) => make("item/video_lockup_shelf", { ...vars, ...videoVars(v) })) });
+	const section = make("channel/playlist_shelf", { ...vars, PLAYLIST_ID: p.id, SHELF_TITLE: p.title, FIRST_VIDEO_ID: videos[0].id, ITEMS: videos.map((v) => make("item/video_lockup_shelf", { ...vars, ...videoVars(v) })) });
+	// the playlist's description under its title, where YouTube puts it
+	if (p.description) {
+		const { playAllButton, ...shelf } = section.itemSectionRenderer.contents[0].shelfRenderer;
+		section.itemSectionRenderer.contents[0].shelfRenderer = { ...shelf, subtitle: { simpleText: p.description }, playAllButton };
+	}
+	return section;
 }
 
 // a channel card (gridChannelRenderer): signed out its Subscribe asks to
