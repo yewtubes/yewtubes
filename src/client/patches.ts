@@ -114,6 +114,31 @@ export const PATCHES: Patch[] = [
 		expect: 1,
 		why: "Google's in-product help and feedback service, loaded by URL when the client opens help or feedback. Points it at this instance's stand-in (assets/help.js): feedback opens /feedback, help opens YouTube's help center.",
 	},
+	{
+		id: "picker-rpc-script",
+		asset: "app",
+		find: '_.WZ(["//apis.google.com/js/rpc.js"])',
+		replace: () => '_.WZ(["/picker/rpc.js"])',
+		expect: 1,
+		why: "The post composer's Video button opens a picker dialog (Bj) that talks to its frame over gadgets.rpc, which it loads from apis.google.com. Loads the instance's gadgets.rpc instead (src/picker.ts), which carries the same calls by postMessage.",
+	},
+	{
+		id: "picker-plain-frame",
+		asset: "app",
+		find: "this.useGapi_=!N&&!iFr()",
+		replace: () => "this.useGapi_=!1",
+		expect: 1,
+		why: "The picker dialog otherwise opens its frame through gapi.iframes (Google's API loader) and speaks Google Picker's protobuf commands to it. With this off it uses its plain-iframe path, which only needs gadgets.rpc (picker-rpc-script), as it does inside Google's own frames.",
+	},
+	{
+		id: "picker-frame-scheme",
+		asset: "app",
+		find: '_.xH(F,\n"https");this.JSC$12116_url_=F.toString()',
+		replace: () => '_.xH(F,\n"http");this.JSC$12116_url_=F.toString()',
+		expect: 1,
+		when: (c) => c.origin.startsWith("http:"),
+		why: "The picker dialog forces its frame URL (ONE_PICK_URL, the instance's /picker) to https. An instance served over plain http keeps http.",
+	},
 	// ---- YouTube Studio ----
 	{
 		id: "studio-gstatic-youtube-img-host",

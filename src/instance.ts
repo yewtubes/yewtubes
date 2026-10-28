@@ -19,6 +19,7 @@ import { feedbackRoutes } from "./feedback";
 import { helpScript } from "./help";
 import { adminRoutes } from "./admin";
 import { gifRoutes } from "./gifs";
+import { pickerRoutes } from "./picker";
 import { suggest } from "./innertube/search";
 import { accountSwitcher } from "./innertube/guide";
 import { postImageUploadRoute, postMediaDir } from "./innertube/post-composer";
@@ -136,6 +137,8 @@ export async function instanceRoutes(req: Request, url: URL, viewer: Viewer): Pr
 	if (path.startsWith("/ggpht/")) return ggpht(req, url);
 	const postUpload = await postImageUploadRoute(req, url, viewer);
 	if (postUpload) return postUpload;
+	const picker = await pickerRoutes(req, url, viewer);
+	if (picker) return picker;
 	if (path.startsWith("/api/stats/")) return stats(url, viewer);
 	if (path === "/complete/search") return suggest(url);
 	if (path === "/favicon.ico") {

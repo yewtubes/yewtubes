@@ -25,8 +25,10 @@ import { imageSize } from "../media/image-size";
 import { rateLimit } from "../ratelimit";
 import { imageTransfer } from "../studio/scotty";
 import { type Attachment, getPost, postRenderer, postThread } from "./posts";
-import { type Channel, avatarThumbnails, responseContext, runs, serviceEndpoint } from "./r";
+import { type Channel, type Video, avatarThumbnails, responseContext, runs, serviceEndpoint } from "./r";
 import { ApiError, route } from "./router";
+import { videoRendererVars } from "./search";
+import { make } from "./tpl";
 
 export const POST_TEXT_LIMIT = 10_000;
 const IMAGE_LIMIT_MB = 16;
@@ -133,6 +135,19 @@ export function composer(c: Channel, viewer: NonNullable<Viewer>) {
 			imagePollButton: button("", { icon: "IMAGE_LIST", tooltip: "Image poll" }, clientAction({ createImagePollCommand: {} })),
 			pollButton: button("", { icon: "POLL", tooltip: "Text poll" }, clientAction({ createPollAction: {} })),
 			quizButton: button("", { icon: "QUIZ", tooltip: "Quiz" }, clientAction({ createQuizCommand: {} })),
+			// opens the picker (ytcfg ONE_PICK_URL, picker.ts), then asks for the chosen video's preview
+			videoLinkButton: button(
+				"",
+				{ icon: "VIDEO_LINK", tooltip: "Video" },
+				clientAction({
+					addVideoLinkAction: {
+						title: runs("Select a video"),
+						onePickHostId: "youtube",
+						onVideoSelectCommand: serviceEndpoint("/youtubei/v1/backstage/get_post_video_preview", { getPostVideoPreviewEndpoint: {} }),
+						hideYourYoutubeVideos: false,
+					},
+				}),
+			),
 			pollEditorInfo: pollEditor(POLL, "Add option", "Add another option"),
 			imagePollEditorRenderer: {
 				imagePollEditorRenderer: {
@@ -266,6 +281,18 @@ async function readAttachment(body: any, viewer: NonNullable<Viewer>): Promise<{
 	}
 	return { attachment: null, images: [] };
 }
+
+// the chosen video as the composer shows it before posting
+route("backstage/get_post_video_preview", async ({ body, viewer }) => {
+	if (!viewer) throw new ApiError(401, "Sign in to post.");
+	const id = str(body.videoId);
+	const v = isVideoId(id) ? await getVideo(id, viewer) : undefined;
+	if (!v || !v.playable || v.visibility === "private") throw new ApiError(404, "This video isn't available.");
+	return {
+		responseContext: responseContext(viewer),
+		actions: [{ addVideoPreviewAction: { videoPreview: make("item/post_video", videoRendererVars(v as Video, viewer)), cancelButton: button("", { icon: "CLOSE", tooltip: "Remove video" }) } }],
+	};
+});
 
 route(
 	"backstage/create_post",

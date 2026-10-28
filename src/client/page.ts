@@ -18,6 +18,7 @@ import { prefCookieDomain } from "../appearance";
 import { INSTANCE_NAME, PUBLIC_ORIGIN } from "../config";
 import { recordMiss } from "../diagnostics";
 import { GIFS_ENABLED } from "../gifs";
+import { PICKER_PATH } from "../picker";
 import { jsonEnd } from "./json";
 import { loadPin, pagePath } from "./store";
 
@@ -137,6 +138,8 @@ export function buildYtcfg(kind: PageKind, viewer: Viewer, pageUrl: string, nonc
 		cfg.ID_TOKEN = undefined;
 	}
 	cfg.SIGNIN_URL = `${PUBLIC_ORIGIN}/signin?next=${encodeURIComponent(pageUrl)}`;
+	// the picker the post composer's Video button opens (picker.ts), in place of Google's
+	cfg.ONE_PICK_URL = `${PUBLIC_ORIGIN}${PICKER_PATH}`;
 	cfg.INNERTUBE_API_KEY = "AIzaSyYewTubeLocalInstanceKeyNotGoogle01";
 	for (const k of ["LINK_API_KEY", "LINK_API_KEY_REDIRECT", "VOZ_API_KEY", "RECAPTCHA_V3_SITEKEY", "GAPI_HINT_PARAMS", "GAPI_HOST", "YPC_MB_URL", "LINK_GAL_DOMAIN", "LINK_OIS_DOMAIN", "PERSIST_IDENTITY_IFRAME_URL", "YTR_FAMILY_CREATION_URL", "LIVE_CHAT_BASE_TANGO_CONFIG"]) delete cfg[k];
 	const client = cfg.INNERTUBE_CONTEXT.client;
