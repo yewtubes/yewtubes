@@ -1,0 +1,5 @@
+{
+	"postMultiImageRenderer": {
+		"images": "{{IMAGES}}"
+	}
+}

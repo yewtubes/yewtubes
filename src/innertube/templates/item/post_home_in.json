@@ -1,0 +1,375 @@
+{
+	"postRenderer": {
+		"postId": "{{POST_ID}}",
+		"authorText": {
+			"runs": [
+				{
+					"text": "{{CHANNEL_NAME}}",
+					"navigationEndpoint": {
+						"commandMetadata": {
+							"webCommandMetadata": {
+								"url": "/{{AT_HANDLE}}",
+								"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+								"rootVe": 3611,
+								"apiUrl": "/youtubei/v1/browse"
+							}
+						},
+						"browseEndpoint": {
+							"browseId": "{{CHANNEL_ID}}",
+							"canonicalBaseUrl": "/{{AT_HANDLE}}"
+						}
+					}
+				}
+			],
+			"accessibility": {
+				"accessibilityData": {
+					"label": "{{CHANNEL_NAME}}"
+				}
+			}
+		},
+		"authorThumbnail": {
+			"thumbnails": "{{AUTHOR_THUMBS}}",
+			"accessibility": {
+				"accessibilityData": {
+					"label": "{{CHANNEL_NAME}}"
+				}
+			}
+		},
+		"authorEndpoint": {
+			"commandMetadata": {
+				"webCommandMetadata": {
+					"url": "/{{AT_HANDLE}}",
+					"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+					"rootVe": 3611,
+					"apiUrl": "/youtubei/v1/browse"
+				}
+			},
+			"browseEndpoint": {
+				"browseId": "{{CHANNEL_ID}}",
+				"canonicalBaseUrl": "/{{AT_HANDLE}}"
+			}
+		},
+		"contentText": "{{CONTENT}}",
+		"backstageAttachment": "{{ATTACHMENT}}",
+		"publishedTimeText": {
+			"runs": [
+				{
+					"text": "{{PUBLISHED}}",
+					"navigationEndpoint": {
+						"commandMetadata": {
+							"webCommandMetadata": {
+								"url": "/post/{{POST_ID}}",
+								"webPageType": "WEB_PAGE_TYPE_BROWSE",
+								"rootVe": 247244,
+								"apiUrl": "/youtubei/v1/browse"
+							}
+						},
+						"browseEndpoint": {
+							"browseId": "FEpost_detail",
+							"params": "{{b64:POST_ID+CHANNEL_ID:wgNaEhheXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4aJH5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+floYXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5e}}",
+							"canonicalBaseUrl": "/post/{{POST_ID}}"
+						}
+					}
+				}
+			]
+		},
+		"voteCount": "{{VOTE}}",
+		"voteStatus": "{{VOTE_STATUS}}",
+		"actionButtons": {
+			"commentActionButtonsRenderer": {
+				"likeButton": {
+					"toggleButtonRenderer": {
+						"style": {
+							"styleType": "STYLE_TEXT"
+						},
+						"size": {
+							"sizeType": "SIZE_DEFAULT"
+						},
+						"isToggled": "{{LIKED}}",
+						"isDisabled": false,
+						"defaultIcon": {
+							"iconType": "LIKE"
+						},
+						"defaultServiceEndpoint": {
+							"commandMetadata": {
+								"webCommandMetadata": {
+									"sendPost": true,
+									"apiUrl": "/youtubei/v1/comment/perform_comment_action"
+								}
+							},
+							"performCommentActionEndpoint": {
+								"action": "{{LIKE_ACTION}}",
+								"clientActions": [
+									{
+										"updateCommentVoteAction": {
+											"voteCount": "{{VOTE_LIKE}}",
+											"voteStatus": "LIKE",
+											"postId": "{{POST_ID}}"
+										}
+									}
+								]
+							}
+						},
+						"toggledServiceEndpoint": {
+							"commandMetadata": {
+								"webCommandMetadata": {
+									"sendPost": true,
+									"apiUrl": "/youtubei/v1/comment/perform_comment_action"
+								}
+							},
+							"performCommentActionEndpoint": {
+								"action": "{{UNLIKE_ACTION}}",
+								"clientActions": [
+									{
+										"updateCommentVoteAction": {
+											"voteCount": "{{VOTE_UNLIKE}}",
+											"voteStatus": "INDIFFERENT",
+											"postId": "{{POST_ID}}"
+										}
+									}
+								]
+							}
+						},
+						"accessibility": {
+							"label": "{{LIKE_A11Y}}"
+						},
+						"defaultTooltip": "Like",
+						"toggledTooltip": "Unlike",
+						"toggledStyle": {
+							"styleType": "STYLE_DEFAULT_ACTIVE"
+						},
+						"accessibilityData": {
+							"accessibilityData": {
+								"label": "{{LIKE_A11Y}}"
+							}
+						},
+						"toggledAccessibilityData": {
+							"accessibilityData": {
+								"label": "Unlike"
+							}
+						}
+					}
+				},
+				"replyButton": {
+					"buttonRenderer": {
+						"style": "STYLE_DEFAULT",
+						"size": "SIZE_DEFAULT",
+						"text": {
+							"accessibility": {
+								"accessibilityData": {
+									"label": "{{COMMENT_COUNT_A11Y}}"
+								}
+							},
+							"simpleText": "{{COMMENT_COUNT}}"
+						},
+						"icon": {
+							"iconType": "COMMENT"
+						},
+						"navigationEndpoint": {
+							"commandMetadata": {
+								"webCommandMetadata": {
+									"url": "/post/{{POST_ID}}",
+									"webPageType": "WEB_PAGE_TYPE_BROWSE",
+									"rootVe": 247244,
+									"apiUrl": "/youtubei/v1/browse"
+								}
+							},
+							"browseEndpoint": {
+								"browseId": "FEpost_detail",
+								"params": "{{b64:POST_ID+CHANNEL_ID:wgNaEhheXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4aJH5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+floYXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5e}}",
+								"canonicalBaseUrl": "/post/{{POST_ID}}"
+							}
+						},
+						"accessibility": {
+							"label": "{{COMMENT_COUNT_A11Y}}"
+						},
+						"tooltip": "Comment",
+						"hint": {
+							"hintRenderer": {
+								"hintId": "comment-reply-button-tooltip",
+								"content": {
+									"bubbleHintRenderer": {
+										"accessibility": {
+											"label": "Reply to a comment here!"
+										},
+										"detailsText": {
+											"accessibility": {
+												"accessibilityData": {
+													"label": "Reply to a comment here!"
+												}
+											},
+											"simpleText": "Reply to a comment here!"
+										},
+										"isVisible": true,
+										"style": "BUBBLE_HINT_STYLE_BLUE_TOOLTIP"
+									}
+								},
+								"hintCap": {
+									"impressionCap": "1"
+								},
+								"suggestedPosition": {
+									"type": "HINT_SUGGESTED_POSITION_TYPE_ABOVE"
+								}
+							}
+						},
+						"accessibilityData": {
+							"accessibilityData": {
+								"label": "{{COMMENT_COUNT_A11Y}}"
+							}
+						}
+					}
+				},
+				"dislikeButton": {
+					"toggleButtonRenderer": {
+						"style": {
+							"styleType": "STYLE_TEXT"
+						},
+						"size": {
+							"sizeType": "SIZE_DEFAULT"
+						},
+						"isToggled": "{{DISLIKED}}",
+						"isDisabled": false,
+						"defaultIcon": {
+							"iconType": "DISLIKE"
+						},
+						"defaultServiceEndpoint": {
+							"commandMetadata": {
+								"webCommandMetadata": {
+									"sendPost": true,
+									"apiUrl": "/youtubei/v1/comment/perform_comment_action"
+								}
+							},
+							"performCommentActionEndpoint": {
+								"action": "{{DISLIKE_ACTION}}",
+								"clientActions": [
+									{
+										"updateCommentVoteAction": {
+											"voteCount": "{{VOTE_DISLIKE}}",
+											"voteStatus": "DISLIKE",
+											"postId": "{{POST_ID}}"
+										}
+									}
+								]
+							}
+						},
+						"toggledServiceEndpoint": {
+							"commandMetadata": {
+								"webCommandMetadata": {
+									"sendPost": true,
+									"apiUrl": "/youtubei/v1/comment/perform_comment_action"
+								}
+							},
+							"performCommentActionEndpoint": {
+								"action": "{{UNDISLIKE_ACTION}}",
+								"clientActions": [
+									{
+										"updateCommentVoteAction": {
+											"voteCount": "{{VOTE_UNDISLIKE}}",
+											"voteStatus": "INDIFFERENT",
+											"postId": "{{POST_ID}}"
+										}
+									}
+								]
+							}
+						},
+						"accessibility": {
+							"label": "Dislike this post"
+						},
+						"defaultTooltip": "Dislike",
+						"toggledTooltip": "Remove dislike",
+						"toggledStyle": {
+							"styleType": "STYLE_DEFAULT_ACTIVE"
+						},
+						"accessibilityData": {
+							"accessibilityData": {
+								"label": "Dislike this post"
+							}
+						},
+						"toggledAccessibilityData": {
+							"accessibilityData": {
+								"label": "Remove dislike"
+							}
+						}
+					}
+				},
+				"style": "COMMENT_ACTION_BUTTON_STYLE_TYPE_DESKTOP_TOOLBAR",
+				"shareButton": {
+					"buttonRenderer": {
+						"style": "STYLE_DEFAULT",
+						"size": "SIZE_DEFAULT",
+						"icon": {
+							"iconType": "SHARE"
+						},
+						"accessibility": {
+							"label": "Share"
+						},
+						"tooltip": "Share",
+						"hint": {
+							"hintRenderer": {
+								"hintId": "share-post-hint"
+							}
+						},
+						"accessibilityData": {
+							"accessibilityData": {
+								"label": "Share"
+							}
+						},
+						"command": {
+							"commandMetadata": {
+								"webCommandMetadata": {
+									"sendPost": true,
+									"apiUrl": "/youtubei/v1/share/get_share_panel"
+								}
+							},
+							"shareEntityServiceEndpoint": {
+								"serializedShareEntity": "{{b64:POST_ID+CHANNEL_ID:MiR+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn46GF5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXqABBg%3D%3D}}",
+								"commands": [
+									{
+										"openPopupAction": {
+											"popup": {
+												"unifiedSharePanelRenderer": {
+													"showLoadingSpinner": true
+												}
+											},
+											"popupType": "DIALOG",
+											"beReused": true
+										}
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"actionMenu": {
+			"menuRenderer": {
+				"items": "{{MENU_ITEMS}}",
+				"accessibility": {
+					"accessibilityData": {
+						"label": "Action menu"
+					}
+				},
+				"menuPopupAccessibility": {
+					"label": "List of menu actions"
+				}
+			}
+		},
+		"surface": "BACKSTAGE_SURFACE_TYPE_CHANNEL_HOME",
+		"navigationEndpoint": {
+			"commandMetadata": {
+				"webCommandMetadata": {
+					"url": "/post/{{POST_ID}}",
+					"webPageType": "WEB_PAGE_TYPE_BROWSE",
+					"rootVe": 247244,
+					"apiUrl": "/youtubei/v1/browse"
+				}
+			},
+			"browseEndpoint": {
+				"browseId": "FEpost_detail",
+				"params": "{{b64:POST_ID+CHANNEL_ID:wgNaEhheXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4aJH5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+floYXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5e}}",
+				"canonicalBaseUrl": "/post/{{POST_ID}}"
+			}
+		}
+	}
+}

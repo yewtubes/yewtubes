@@ -1,0 +1,17 @@
+{
+	"contents": [
+		{
+			"itemSectionRenderer": {
+				"contents": "{{ITEMS}}",
+				"header": {
+					"commentsHeaderRenderer": {
+						"isBackstageContent": true
+					}
+				},
+				"sectionIdentifier": "backstage-item-section",
+				"targetId": "backstage-item-section"
+			}
+		}
+	],
+	"disablePullToRefresh": true
+}

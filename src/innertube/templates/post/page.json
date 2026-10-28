@@ -1,0 +1,108 @@
+{
+	"tabs": [
+		{
+			"tabRenderer": {
+				"title": "Posts",
+				"selected": true,
+				"content": {
+					"sectionListRenderer": {
+						"contents": [
+							{
+								"itemSectionRenderer": {
+									"contents": [
+										"{{POST}}"
+									],
+									"header": {
+										"commentsHeaderRenderer": {
+											"isBackstageContent": true
+										}
+									},
+									"sectionIdentifier": "backstage-item-section"
+								}
+							},
+							{
+								"itemSectionRenderer": {
+									"contents": [
+										{
+											"continuationItemRenderer": {
+												"trigger": "CONTINUATION_TRIGGER_ON_ITEM_SHOWN",
+												"continuationEndpoint": {
+													"commandMetadata": {
+														"webCommandMetadata": {
+															"sendPost": true,
+															"apiUrl": "/youtubei/v1/browse"
+														}
+													},
+													"continuationCommand": {
+														"token": "{{COMMENTS_TOKEN}}",
+														"request": "CONTINUATION_REQUEST_TYPE_BROWSE"
+													}
+												}
+											}
+										}
+									],
+									"sectionIdentifier": "comment-item-section",
+									"targetId": "comments-section"
+								}
+							}
+						],
+						"disablePullToRefresh": true
+					}
+				}
+			}
+		}
+	],
+	"metadata": {
+		"channelMetadataRenderer": {
+			"title": "{{CHANNEL_NAME}}",
+			"externalId": "{{CHANNEL_ID}}"
+		}
+	},
+	"microformat": {
+		"microformatDataRenderer": {
+			"urlCanonical": "{{ORIGIN}}/post/{{POST_ID}}",
+			"title": "{{TEXT_SHORT}}",
+			"description": "{{TEXT_SHORT}}",
+			"thumbnail": {
+				"thumbnails": "{{AVATAR_200}}"
+			},
+			"siteName": "YouTube",
+			"ogType": "yt-fb-app:channel",
+			"twitterCardType": "summary",
+			"twitterSiteHandle": "@YouTube",
+			"schemaDotOrgType": "http://schema.org/http://schema.org/YoutubeChannelV2",
+			"noindex": false,
+			"unlisted": false,
+			"familySafe": true,
+			"pageOwnerDetails": {
+				"name": "{{CHANNEL_NAME}}"
+			},
+			"publishDate": "{{PUBLISH_DATE}}",
+			"postDetails": {
+				"externalPostId": "{{POST_ID}}",
+				"discussionForumPosting": {
+					"type": "https://schema.org/DiscussionForumPosting",
+					"url": "{{ORIGIN}}/post/{{POST_ID}}",
+					"datePublished": "{{PUBLISH_DATE}}",
+					"headline": "{{TEXT_SHORT}}",
+					"text": "{{TEXT}}",
+					"author": {
+						"type": "https://schema.org/Person",
+						"name": "{{CHANNEL_NAME}}",
+						"url": "{{ORIGIN}}/{{AT_HANDLE}}"
+					},
+					"context": "https://schema.org/",
+					"interactionStatistic": [
+						{
+							"type": "InteractionCounter",
+							"interactionType": {
+								"type": "LikeAction"
+							},
+							"userInteractionCount": "{{LIKE_COUNT}}"
+						}
+					]
+				}
+			}
+		}
+	}
+}

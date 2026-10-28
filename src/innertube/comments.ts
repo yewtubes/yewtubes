@@ -1,4 +1,4 @@
-// Comments on the watch page. The section loads through a /next
+// Comments on the watch page and on posts. The section loads through a /next
 // continuation: a header (count, sort menu, composer) and threads, where
 // each comment is a commentViewModel holding entity keys and the content
 // arrives as frameworkUpdates entity payloads (commentEntityPayload,
@@ -7,9 +7,12 @@
 // signed in and signed out). Composer and reply dialog submit to comment/create_comment
 // and comment/create_comment_reply; likes go through
 // comment/perform_comment_action with tokens this instance signs.
+// A post's comments (/post/<id>) are the same section loaded through browse,
+// as YouTube loads them; tokens name the post (po) instead of the video (v).
 
 import type { Viewer } from "../client/page";
 import { getVideo } from "../data";
+import { getPost, isPostAction, postAction } from "./posts";
 import { sql } from "../db";
 import { decodeToken, encodeToken, newCommentId } from "../ids";
 import { continuationItem } from "./items";
@@ -24,7 +27,7 @@ import { baseVars } from "./vars";
 const PAGE = 20;
 const REPLY_PAGE = 10;
 
-type Row = { id: string; video_id: string; parent_id: string | null; text: string; gif: Gif | null; like_count: number; reply_count: number; created_at: Date; hearted_at: Date | null; author_channel_id: string; author_handle: string; author_title: string; video_channel_id: string; video_channel_handle: string; liked: boolean };
+type Row = { id: string; video_id: string | null; post_id: string | null; parent_id: string | null; text: string; gif: Gif | null; like_count: number; reply_count: number; created_at: Date; hearted_at: Date | null; author_channel_id: string; author_handle: string; author_title: string; video_channel_id: string; video_channel_handle: string; liked: boolean };
 
 const key = (kind: string, id: string) => Buffer.from(`${kind}:${id}`).toString("base64url");
 const SHARED_KEY = key("shared", "comments");
@@ -34,6 +37,16 @@ const io = (viewer: Viewer) => (viewer ? "in" : "out");
 const entityUpdate = (mutations: unknown[]) => ({ frameworkUpdates: { entityBatchUpdate: { mutations, timestamp: now() } } });
 const sharedPayload = (viewer: Viewer) => make(`comments/shared_${io(viewer)}`, { SHARED_KEY });
 const viewerThumbs = (viewer: Viewer) => avatarThumbnails(viewer?.channelId ?? "UC0000000000000000000000").thumbnails;
+
+// what a comment belongs to: a video (v) or a post (po), as tokens carry it
+type Target = { v: string; po?: undefined } | { po: string; v?: undefined };
+const targetOf = (t: { v?: unknown; po?: unknown }): Target | undefined => (typeof t.po === "string" ? { po: t.po } : typeof t.v === "string" ? { v: t.v } : undefined);
+const rowTarget = (c: Row): Target => (c.post_id ? { po: c.post_id } : { v: c.video_id! });
+const pagePath = (t: Target) => (t.po ? `/post/${t.po}` : `/watch?v=${t.v}`);
+const targetWhere = (t: Target) => (t.po ? sql`c.post_id = ${t.po}` : sql`c.video_id = ${t.v}`);
+// a post's comments load and page through browse, as YouTube's do
+const viaBrowse = (o: any): any =>
+	o === "/youtubei/v1/next" ? "/youtubei/v1/browse" : Array.isArray(o) ? o.map(viaBrowse) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, viaBrowse(v)])) : o;
 
 function actionToken(action: "like" | "unlike" | "delete", commentId: string, userId: string) {
 	return encodeToken({ a: action, c: commentId, u: userId });
@@ -45,9 +58,9 @@ function commentVars(c: Row, viewer: Viewer): Vars {
 	const others = c.like_count - (c.liked ? 1 : 0);
 	const avatar = avatarUrl(c.author_channel_id, 88);
 	const vars: Vars = {
-		...baseVars(viewer, `/watch?v=${c.video_id}`),
+		...baseVars(viewer, pagePath(rowTarget(c))),
 		COMMENT_ID: c.id,
-		VIDEO_ID: c.video_id,
+		VIDEO_ID: c.video_id ?? "",
 		COMMENT_KEY: key("comment", c.id),
 		TOOLBAR_STATE_KEY: key("toolbarstate", c.id),
 		TOOLBAR_SURFACE_KEY: key("toolbarsurface", c.id),
@@ -79,7 +92,7 @@ function commentVars(c: Row, viewer: Viewer): Vars {
 			// dislikes are not kept; both clear the viewer's like
 			DISLIKE_ACTION: actionToken("unlike", c.id, viewer.userId),
 			UNDISLIKE_ACTION: actionToken("unlike", c.id, viewer.userId),
-			REPLY_PARAMS: encodeToken({ v: c.video_id, p: c.parent_id ?? c.id }),
+			REPLY_PARAMS: encodeToken({ ...rowTarget(c), p: c.parent_id ?? c.id }),
 			// the action menu: Delete on the viewer's own comments (Report is not offered)
 			MENU_ITEMS:
 				viewer.channelId === c.author_channel_id
@@ -104,6 +117,8 @@ function entities(c: Row, viewer: Viewer, vars: Vars) {
 		if (p.engagementToolbarSurfaceEntityPayload && !(vars.MENU_ITEMS as unknown[] | undefined)?.length) delete p.engagementToolbarSurfaceEntityPayload.menuCommand;
 		// a GIF (gifs.ts), shown by the client under the text
 		if (p.commentSurfaceEntityPayload && c.gif) p.commentSurfaceEntityPayload.imageAttachmentViewModel = imageAttachment(c.gif);
+		// a post's comments have no timestamp link (it would open a video)
+		if (p.commentSurfaceEntityPayload && c.post_id) delete p.commentSurfaceEntityPayload.publishedTimeCommand;
 	}
 	return mutations;
 }
@@ -114,10 +129,10 @@ function thread(c: Row, viewer: Viewer) {
 	const item = make(`item/comment_thread_${io(viewer)}`, {
 		...vars,
 		REPLIES_TEXT: c.reply_count === 1 ? "1 reply" : `${grouped(c.reply_count)} replies`,
-		REPLIES_TOKEN: encodeToken({ k: "replies", v: c.video_id, c: c.id, o: 0 }),
+		REPLIES_TOKEN: encodeToken({ k: "replies", ...rowTarget(c), c: c.id, o: 0 }),
 	});
 	if (!c.reply_count) delete item.commentThreadRenderer.replies;
-	return { item, mutations: entities(c, viewer, vars) };
+	return { item: c.post_id ? viaBrowse(item) : item, mutations: entities(c, viewer, vars) };
 }
 
 // a reply (item/comment_reply_*)
@@ -126,12 +141,13 @@ function replyItem(c: Row, viewer: Viewer) {
 	return { item: make(`item/comment_reply_${io(viewer)}`, vars), mutations: entities(c, viewer, vars) };
 }
 
-async function load(videoId: string, viewer: Viewer, opts: { parent?: string; sort?: string; offset: number; limit: number }): Promise<Row[]> {
+async function load(target: Target, viewer: Viewer, opts: { parent?: string; sort?: string; offset: number; limit: number }): Promise<Row[]> {
 	const order = opts.parent ? sql`c.created_at asc` : opts.sort === "new" ? sql`c.created_at desc` : sql`c.like_count desc, c.reply_count desc, c.created_at desc`;
-	return (await sql`select c.id, c.video_id, c.parent_id, c.text, c.gif, c.like_count, c.reply_count, c.created_at, c.hearted_at, c.author_channel_id, ch.handle as author_handle, ch.title as author_title,
-		v.channel_id as video_channel_id, vc.handle as video_channel_handle, exists(select 1 from comment_reactions r where r.comment_id = c.id and r.user_id = ${viewer?.userId ?? "0"} and r.kind = 'like') as liked
-		from comments c join channels ch on ch.id = c.author_channel_id join videos v on v.id = c.video_id join channels vc on vc.id = v.channel_id
-		where c.video_id = ${videoId} and c.deleted_at is null and c.spam_at is null and ${opts.parent ? sql`c.parent_id = ${opts.parent}` : sql`c.parent_id is null`}
+	// video_channel_*: the channel the video or post belongs to (its creator)
+	return (await sql`select c.id, c.video_id, c.post_id, c.parent_id, c.text, c.gif, c.like_count, c.reply_count, c.created_at, c.hearted_at, c.author_channel_id, ch.handle as author_handle, ch.title as author_title,
+		vc.id as video_channel_id, vc.handle as video_channel_handle, exists(select 1 from comment_reactions r where r.comment_id = c.id and r.user_id = ${viewer?.userId ?? "0"} and r.kind = 'like') as liked
+		from comments c join channels ch on ch.id = c.author_channel_id left join videos v on v.id = c.video_id left join posts po on po.id = c.post_id join channels vc on vc.id = coalesce(v.channel_id, po.channel_id)
+		where ${targetWhere(target)} and c.deleted_at is null and c.spam_at is null and ${opts.parent ? sql`c.parent_id = ${opts.parent}` : sql`c.parent_id is null`}
 		order by ${order}, c.id limit ${opts.limit} offset ${opts.offset}`) as Row[];
 }
 
@@ -142,55 +158,64 @@ const retarget = (o: any): any =>
 	o === "comments-section" ? SHORTS_SECTION : Array.isArray(o) ? o.map(retarget) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, retarget(v)])) : o;
 
 // count, sort menu and composer (comments/header_*)
-function header(videoId: string, count: number, sort: string, viewer: Viewer, shorts = false) {
+function header(target: Target, count: number, sort: string, viewer: Viewer, shorts = false) {
 	const h = make(`comments/header_${io(viewer)}`, {
-		...baseVars(viewer, `/watch?v=${videoId}`),
+		...baseVars(viewer, pagePath(target)),
 		...(viewer ? viewerVars(viewer) : {}),
 		COUNT: grouped(count),
 		COMMENTS_WORD: count === 1 ? " Comment" : " Comments",
 		COUNT_SHORT: compact(count),
-		SORT_TOP: encodeToken({ k: "comments", v: videoId, s: "top", ...(shorts ? { t: "s" } : {}) }),
-		SORT_NEW: encodeToken({ k: "comments", v: videoId, s: "new", ...(shorts ? { t: "s" } : {}) }),
+		SORT_TOP: encodeToken({ k: "comments", ...target, s: "top", ...(shorts ? { t: "s" } : {}) }),
+		SORT_NEW: encodeToken({ k: "comments", ...target, s: "new", ...(shorts ? { t: "s" } : {}) }),
 		SORT_TOP_SELECTED: sort === "top",
 		SORT_NEW_SELECTED: sort === "new",
-		CREATE_PARAMS: encodeToken({ v: videoId }),
+		CREATE_PARAMS: encodeToken(target),
 		VIEWER_THUMBS: viewerThumbs(viewer),
 	});
+	if (target.po) return viaBrowse(h);
 	if (!shorts) return h;
 	// the Shorts panel has its own title and sort menu: only the composer
 	const r = h.commentsHeaderRenderer;
 	return { commentsHeaderRenderer: { createRenderer: retarget(r.createRenderer) } };
 }
 
-export async function commentsContinuation(tok: { v: string; s?: string; c?: string; o?: number; k?: string; t?: string }, viewer: Viewer) {
-	const video = await getVideo(tok.v, viewer);
-	if (!video) throw new ApiError(404, "Video not found");
+async function checkTarget(target: Target | undefined, viewer: Viewer): Promise<Target> {
+	if (target?.po) {
+		if (!(await getPost(target.po, viewer))) throw new ApiError(404, "This post isn't available anymore.");
+		return target;
+	}
+	if (!target?.v || !(await getVideo(target.v, viewer))) throw new ApiError(404, "Video not found");
+	return target;
+}
+
+export async function commentsContinuation(tok: { v?: string; po?: string; s?: string; c?: string; o?: number; k?: string; t?: string }, viewer: Viewer) {
+	const target = await checkTarget(targetOf(tok), viewer);
 	const offset = tok.o ?? 0;
 	if (tok.k === "replies" && tok.c) {
-		const rows = await load(tok.v, viewer, { parent: tok.c, offset, limit: REPLY_PAGE });
+		const rows = await load(target, viewer, { parent: tok.c, offset, limit: REPLY_PAGE });
 		const parts = rows.map((r) => replyItem(r, viewer));
 		const items: unknown[] = parts.map((p) => p.item);
-		if (rows.length === REPLY_PAGE) items.push(make("item/continuation_replies", { CONTINUATION: encodeToken({ k: "replies", v: tok.v, c: tok.c, o: offset + REPLY_PAGE }) }));
+		if (rows.length === REPLY_PAGE) items.push(make("item/continuation_replies", { CONTINUATION: encodeToken({ k: "replies", ...target, c: tok.c, o: offset + REPLY_PAGE }) }));
 		return {
 			responseContext: responseContext(viewer),
-			onResponseReceivedEndpoints: [{ appendContinuationItemsAction: { continuationItems: items, targetId: `comment-replies-item-${tok.c}` } }],
+			onResponseReceivedEndpoints: [{ appendContinuationItemsAction: { continuationItems: target.po ? viaBrowse(items) : items, targetId: `comment-replies-item-${tok.c}` } }],
 			...entityUpdate(parts.flatMap((p) => p.mutations)),
 		};
 	}
 	const sort = tok.s === "new" ? "new" : "top";
-	const rows = await load(tok.v, viewer, { sort, offset, limit: PAGE });
+	const rows = await load(target, viewer, { sort, offset, limit: PAGE });
 	const threads = rows.map((r) => thread(r, viewer));
 	const items: unknown[] = threads.map((t) => t.item);
 	const shorts = tok.t === "s";
 	const section = shorts ? SHORTS_SECTION : "comments-section";
-	if (rows.length === PAGE) items.push(continuationItem(encodeToken({ k: "comments", v: tok.v, s: sort, o: offset + PAGE, ...(shorts ? { t: "s" } : {}) }), shorts ? "/youtubei/v1/browse" : "/youtubei/v1/next"));
+	if (rows.length === PAGE) items.push(continuationItem(encodeToken({ k: "comments", ...target, s: sort, o: offset + PAGE, ...(shorts ? { t: "s" } : {}) }), shorts || target.po ? "/youtubei/v1/browse" : "/youtubei/v1/next"));
 	const update = entityUpdate([sharedPayload(viewer), ...threads.flatMap((t) => t.mutations)]);
 	if (offset > 0) return { responseContext: responseContext(viewer), onResponseReceivedEndpoints: [{ appendContinuationItemsAction: { continuationItems: items, targetId: section } }], ...update };
-	const [{ n }] = await sql`select count(*)::int as n from comments where video_id = ${tok.v} and deleted_at is null and spam_at is null`;
+	const [{ n }] = await sql`select count(*)::int as n from comments c where ${targetWhere(target)} and c.deleted_at is null and c.spam_at is null`;
 	return {
 		responseContext: responseContext(viewer),
 		onResponseReceivedEndpoints: [
-			{ reloadContinuationItemsCommand: { targetId: section, continuationItems: [header(tok.v, n, sort, viewer, shorts)], slot: "RELOAD_CONTINUATION_SLOT_HEADER" } },
+			{ reloadContinuationItemsCommand: { targetId: section, continuationItems: [header(target, n, sort, viewer, shorts)], slot: "RELOAD_CONTINUATION_SLOT_HEADER" } },
 			{ reloadContinuationItemsCommand: { targetId: section, continuationItems: items, slot: "RELOAD_CONTINUATION_SLOT_BODY" } },
 		],
 		...update,
@@ -210,30 +235,34 @@ function content(body: any): { text: string; gif: Gif | null } {
 	return { text, gif: gif ?? null };
 }
 
-async function insertComment(videoId: string, viewer: NonNullable<Viewer>, { text, gif }: { text: string; gif: Gif | null }, parent: string | null) {
+async function insertComment(target: Target | undefined, viewer: NonNullable<Viewer>, { text, gif }: { text: string; gif: Gif | null }, parent: string | null) {
 	if (!(await rateLimit(`comment:${viewer.userId}`, 30, 600))) throw new ApiError(429, "You're commenting too fast. Try again in a few minutes.", "rateLimitExceeded");
-	const video = await getVideo(videoId, viewer);
-	if (!video?.playable) throw new ApiError(404, "Video not found");
+	if (target?.v) {
+		const video = await getVideo(target.v, viewer);
+		if (!video?.playable) throw new ApiError(404, "Video not found");
+	} else await checkTarget(target, viewer);
+	const t = target!;
 	const id = newCommentId();
 	await sql.begin(async (tx) => {
 		if (parent) {
-			const [p] = await tx`select id from comments where id = ${parent} and video_id = ${videoId} and parent_id is null and deleted_at is null and spam_at is null`;
+			const [p] = await tx`select id from comments c where id = ${parent} and ${t.po ? tx`c.post_id = ${t.po}` : tx`c.video_id = ${t.v}`} and parent_id is null and deleted_at is null and spam_at is null`;
 			if (!p) throw new ApiError(404, "The comment you're replying to was removed.");
 			await tx`update comments set reply_count = reply_count + 1 where id = ${parent}`;
 		}
-		await tx`insert into comments (id, video_id, author_channel_id, parent_id, text, gif) values (${id}, ${videoId}, ${viewer.channelId}, ${parent}, ${text}, ${gif ? JSON.stringify(gif) : null}::text::jsonb)`;
-		await tx`update videos set comment_count = comment_count + 1 where id = ${videoId}`;
+		await tx`insert into comments (id, video_id, post_id, author_channel_id, parent_id, text, gif) values (${id}, ${t.v ?? null}, ${t.po ?? null}, ${viewer.channelId}, ${parent}, ${text}, ${gif ? JSON.stringify(gif) : null}::text::jsonb)`;
+		if (t.po) await tx`update posts set comment_count = comment_count + 1 where id = ${t.po}`;
+		else await tx`update videos set comment_count = comment_count + 1 where id = ${t.v}`;
 	});
-	const [row] = await load(videoId, viewer, { parent: parent ?? undefined, offset: 0, limit: 1000 }).then((rs) => rs.filter((r) => r.id === id));
+	const [row] = await load(t, viewer, { parent: parent ?? undefined, offset: 0, limit: 1000 }).then((rs) => rs.filter((r) => r.id === id));
 	return row;
 }
 
 route(
 	"comment/create_comment",
 	async ({ body, viewer }) => {
-		const params = decodeToken<{ v: string }>(body.createCommentParams);
-		if (!params) throw new ApiError(400, "Invalid comment parameters");
-		const row = await insertComment(params.v, viewer!, content(body), null);
+		const params = decodeToken<{ v?: string; po?: string }>(body.createCommentParams);
+		if (!params || !targetOf(params)) throw new ApiError(400, "Invalid comment parameters");
+		const row = await insertComment(targetOf(params), viewer!, content(body), null);
 		const t = thread(row, viewer);
 		return { responseContext: responseContext(viewer), actions: [{ createCommentAction: { contents: t.item } }], ...entityUpdate([sharedPayload(viewer), ...t.mutations]) };
 	},
@@ -243,9 +272,9 @@ route(
 route(
 	"comment/create_comment_reply",
 	async ({ body, viewer }) => {
-		const params = decodeToken<{ v: string; p: string }>(body.createReplyParams);
-		if (!params) throw new ApiError(400, "Invalid reply parameters");
-		const row = await insertComment(params.v, viewer!, content(body), params.p);
+		const params = decodeToken<{ v?: string; po?: string; p: string }>(body.createReplyParams);
+		if (!params || !targetOf(params)) throw new ApiError(400, "Invalid reply parameters");
+		const row = await insertComment(targetOf(params), viewer!, content(body), params.p);
 		const r = replyItem(row, viewer);
 		return { responseContext: responseContext(viewer), actions: [{ createCommentReplyAction: { contents: r.item } }], ...entityUpdate([sharedPayload(viewer), ...r.mutations]) };
 	},
@@ -257,10 +286,18 @@ route(
 	async ({ body, viewer }) => {
 		const tokens: unknown[] = Array.isArray(body.actions) ? body.actions : [body.action];
 		const mutations: unknown[] = [];
+		let feedback: string | undefined;
+		const actions: unknown[] = [];
 		for (const raw of tokens.slice(0, 10)) {
-			const t = decodeToken<{ a: string; c: string; u: string }>(raw);
+			const t = decodeToken<{ a: string; c: string; u: string; po: string }>(raw);
 			if (!t || t.u !== viewer!.userId) throw new ApiError(400, "Invalid comment action");
-			if (t.a === "like" || t.a === "unlike") {
+			// a post's like, dislike or delete (posts.ts)
+			if (isPostAction(t)) {
+				const r = await postAction(t, viewer!);
+				feedback = r.feedback ?? feedback;
+				actions.push(...(r.actions ?? []));
+			}
+			else if (t.a === "like" || t.a === "unlike") {
 				await sql.begin(async (tx) => {
 					const [prev] = await tx`select kind from comment_reactions where user_id = ${viewer!.userId} and comment_id = ${t.c} for update`;
 					if (t.a === "like" && !prev) {
@@ -276,16 +313,17 @@ route(
 				mutations.push({ entityKey: k, type: "ENTITY_MUTATION_TYPE_REPLACE", payload: { engagementToolbarStateEntityPayload: { key: k, likeState: t.a === "like" ? "TOOLBAR_LIKE_STATE_LIKED" : "TOOLBAR_LIKE_STATE_INDIFFERENT", heartState: hearted_at ? "TOOLBAR_HEART_STATE_HEARTED" : "TOOLBAR_HEART_STATE_UNHEARTED" } } });
 			} else if (t.a === "delete") await deleteOwnComment(viewer!.channelId, t.c);
 		}
-		return { responseContext: responseContext(viewer), actionResults: [{ status: "STATUS_SUCCEEDED" }], ...entityUpdate(mutations) };
+		return { responseContext: responseContext(viewer), actionResults: [{ status: "STATUS_SUCCEEDED", ...(feedback ? { feedback } : {}) }], ...(actions.length ? { actions } : {}), ...entityUpdate(mutations) };
 	},
 	{ mutation: true },
 );
 
 // the author deleting their comment (the comment's menu, My Activity)
 export async function deleteOwnComment(channelId: string, id: string): Promise<boolean> {
-	const [c] = await sql`update comments set deleted_at = now() where id = ${id} and author_channel_id = ${channelId} and deleted_at is null returning video_id, parent_id`;
+	const [c] = await sql`update comments set deleted_at = now() where id = ${id} and author_channel_id = ${channelId} and deleted_at is null returning video_id, post_id, parent_id`;
 	if (!c) return false;
-	await sql`update videos set comment_count = greatest(0, comment_count - 1) where id = ${c.video_id}`;
+	if (c.post_id) await sql`update posts set comment_count = greatest(0, comment_count - 1) where id = ${c.post_id}`;
+	else await sql`update videos set comment_count = greatest(0, comment_count - 1) where id = ${c.video_id}`;
 	if (c.parent_id) await sql`update comments set reply_count = greatest(0, reply_count - 1) where id = ${c.parent_id}`;
 	return true;
 }

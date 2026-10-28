@@ -1,0 +1,65 @@
+{
+	"itemSectionRenderer": {
+		"contents": [
+			{
+				"shelfRenderer": {
+					"title": {
+						"runs": [
+							{
+								"text": "Posts"
+							}
+						]
+					},
+					"endpoint": {
+						"commandMetadata": {
+							"webCommandMetadata": {
+								"url": "/{{AT_HANDLE}}/posts",
+								"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+								"rootVe": 3611,
+								"apiUrl": "/youtubei/v1/browse"
+							}
+						},
+						"browseEndpoint": {
+							"browseId": "{{CHANNEL_ID}}",
+							"params": "{{POSTS_PARAMS}}",
+							"canonicalBaseUrl": "/{{AT_HANDLE}}"
+						}
+					},
+					"content": {
+						"horizontalListRenderer": {
+							"items": "{{ITEMS}}",
+							"visibleItemCount": 4,
+							"nextButton": {
+								"buttonRenderer": {
+									"style": "STYLE_DEFAULT",
+									"size": "SIZE_DEFAULT",
+									"isDisabled": false,
+									"icon": {
+										"iconType": "CHEVRON_RIGHT"
+									},
+									"accessibility": {
+										"label": "Next"
+									}
+								}
+							},
+							"previousButton": {
+								"buttonRenderer": {
+									"style": "STYLE_DEFAULT",
+									"size": "SIZE_DEFAULT",
+									"isDisabled": false,
+									"icon": {
+										"iconType": "CHEVRON_LEFT"
+									},
+									"accessibility": {
+										"label": "Previous"
+									}
+								}
+							},
+							"force16By9ThumbnailAspectRatio": true
+						}
+					}
+				}
+			}
+		]
+	}
+}

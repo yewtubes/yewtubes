@@ -1,0 +1,21 @@
+{
+	"text": {
+		"runs": [
+			{
+				"text": "{{TEXT}}"
+			}
+		]
+	},
+	"signinEndpoint": {
+		"commandMetadata": {
+			"webCommandMetadata": {
+				"url": "{{SIGNIN_URL}}",
+				"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+				"rootVe": 83769
+			}
+		},
+		"signInEndpoint": {
+			"nextEndpoint": "{{NEXT_ENDPOINT}}"
+		}
+	}
+}

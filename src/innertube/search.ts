@@ -144,9 +144,10 @@ function headerVars(query: string, s: Search, chip?: Chip): Vars {
 
 const searchThumbs = (id: string) => [[360, 202], [720, 404]].map(([width, height]) => ({ url: `${PUBLIC_ORIGIN}/vi/${id}/hq720.jpg`, width, height }));
 
-function videoItem(v: Video, viewer: Viewer) {
+// a videoRenderer's values (search results, a post's video)
+export function videoRendererVars(v: Video, viewer: Viewer): Vars {
 	const snippet = (v.description ?? "").replace(/\s+/g, " ").trim();
-	const item = make(`item/video_search_${viewer ? "in" : "out"}`, {
+	return {
 		...baseVars(viewer),
 		...videoVars(v),
 		...(v.view_count ? {} : { VIEWS_FULL: "No views" }),
@@ -156,8 +157,13 @@ function videoItem(v: Video, viewer: Viewer) {
 		SEARCH_THUMBS: searchThumbs(v.id),
 		AVATAR_68: avatarSources(v.channel_id, [68]),
 		SNIPPET: snippet.length > 160 ? `${snippet.slice(0, 157)}...` : snippet,
-	});
-	if (!snippet) delete item.videoRenderer.detailedMetadataSnippets;
+	};
+}
+
+function videoItem(v: Video, viewer: Viewer) {
+	const vars = videoRendererVars(v, viewer);
+	const item = make(`item/video_search_${viewer ? "in" : "out"}`, vars);
+	if (!vars.SNIPPET) delete item.videoRenderer.detailedMetadataSnippets;
 	return item;
 }
 

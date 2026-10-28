@@ -15,16 +15,17 @@ import { make, tpl, fill, type Vars } from "./tpl";
 import { baseVars, channelVars, videoVars } from "./vars";
 import { subscribeAction } from "./subscribe";
 import { shortLockup } from "./feeds";
+import { hasPosts, postsShelf, postsTab } from "./posts";
 
 export const CHANNEL_PAGE = 30;
-export type ChannelTab = "featured" | "videos" | "shorts" | "playlists";
+export type ChannelTab = "featured" | "videos" | "shorts" | "playlists" | "posts";
 export type GridKind = "videos" | "shorts";
 export type ChannelSort = "newest" | "popular" | "oldest";
 
 // tab from the client's params blob ({2: "videos", ...}); none means Home
 export function channelTab(params: string | undefined): ChannelTab {
 	const t = channelTabFromParams(params);
-	return t === "videos" || t === "shorts" || t === "playlists" ? t : "featured";
+	return t === "videos" || t === "shorts" || t === "playlists" || t === "posts" ? t : "featured";
 }
 
 // the params YouTube uses for each tab (constant across channels)
@@ -61,7 +62,7 @@ export async function videoGridReload(c: Channel, viewer: Viewer, sort: ChannelS
 }
 
 // a description as runs, its web links made links
-function descriptionRuns(text: string) {
+export function descriptionRuns(text: string) {
 	return text.split(/(https?:\/\/[^\s]+)/).filter(Boolean).map((t) => (/^https?:\/\//.test(t) ? { text: t, navigationEndpoint: urlEndpoint(t, true) } : { text: t }));
 }
 
@@ -132,7 +133,8 @@ async function section(c: Channel, viewer: Viewer, vars: Vars, d: ShelfDefinitio
 	if (type === "SHELF_TYPE_POPULAR_UPLOADS") return videoShelf(c, viewer, vars, "Popular videos", "popular");
 	if (type === "SHELF_TYPE_SHORT_MOBILE_VIDEOS_UPLOADS") return shortsShelf(c, viewer);
 	if (type === "SHELF_TYPE_CREATED_PLAYLISTS") return playlistsShelf(c, viewer, vars, "Created playlists");
-	// live streams, posts, collaborations, clips: the instance has none yet
+	if (type === "SHELF_TYPE_RECENT_POSTS") return postsShelf(c, viewer, vars);
+	// live streams, collaborations, clips: the instance has none yet
 	return undefined;
 }
 
@@ -142,7 +144,7 @@ async function homeTab(c: Channel, viewer: Viewer, vars: Vars) {
 	if (saved) for (const d of saved) sections.push(await section(c, viewer, vars, d));
 	// the default layout: newest videos, popular ones once there are a few,
 	// then YouTube's Shorts shelf
-	else sections.push(await videoShelf(c, viewer, vars, "Videos", "newest"), c.video_count > 4 ? await videoShelf(c, viewer, vars, "Popular videos", "popular") : undefined, await shortsShelf(c, viewer));
+	else sections.push(await videoShelf(c, viewer, vars, "Videos", "newest"), c.video_count > 4 ? await videoShelf(c, viewer, vars, "Popular videos", "popular") : undefined, await shortsShelf(c, viewer), await postsShelf(c, viewer, vars));
 	return { sectionListRenderer: make("channel/home_sections", { ...vars, SECTIONS: sections.filter(Boolean), TARGET_ID: `browse-feed${c.id}featured` }) };
 }
 
@@ -181,7 +183,9 @@ export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer) {
 	// with the Home tab turned off in Studio, the channel opens on its first other tab
 	const hasPlaylists = (await channelPlaylistLockups(c, viewer)).length > 0;
 	const has = async (kind: GridKind) => (await channelVideos(c.id, viewer, 1, 0, "newest", kind)).length > 0;
-	const available: ChannelTab[] = [...(c.home_tab_enabled === false ? [] : ["featured" as const]), ...((await has("videos")) ? ["videos" as const] : []), ...((await has("shorts")) ? ["shorts" as const] : []), ...(hasPlaylists ? ["playlists" as const] : [])];
+	// the owner always has Posts (its composer); others once there is a post
+	const posts = viewer?.channelId === c.id || (await hasPosts(c.id));
+	const available: ChannelTab[] = [...(c.home_tab_enabled === false ? [] : ["featured" as const]), ...((await has("videos")) ? ["videos" as const] : []), ...((await has("shorts")) ? ["shorts" as const] : []), ...(hasPlaylists ? ["playlists" as const] : []), ...(posts ? ["posts" as const] : [])];
 	if (tab === "featured" && !available.includes("featured")) tab = available[0] ?? "featured";
 	const path = `/@${c.handle}${tab === "featured" ? "" : `/${tab}`}`;
 	const vars = { ...baseVars(viewer, path), ...channelVars(c) };
@@ -190,6 +194,7 @@ export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer) {
 	if (tab === "videos") content = { richGridRenderer: make("channel/videos_grid", { ...vars, ...sortVars(c, "newest", "videos"), ITEMS: await videoGridItems(c, viewer, 0, "newest") }) };
 	else if (tab === "shorts") content = { richGridRenderer: make("channel/shorts_grid", { ...sortVars(c, "newest", "shorts"), ITEMS: await videoGridItems(c, viewer, 0, "newest", "shorts") }) };
 	else if (tab === "playlists") content = await playlistsTab(c, viewer, vars);
+	else if (tab === "posts") content = await postsTab(c, viewer);
 	else content = await homeTab(c, viewer, vars);
 	// YouTube lists only the tabs a channel has content for
 	const show: string[] = [...(available.includes(tab) ? available : [tab, ...available]), "search"];

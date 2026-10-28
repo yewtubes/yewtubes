@@ -17,10 +17,13 @@ export const newVideoId = () => randomId(11);
 export const newChannelId = () => `UC${randomId(22)}`;
 export const newPlaylistId = () => `PL${randomId(32)}`;
 export const newCommentId = () => `Ug${randomId(24)}`;
+// posts have YouTube's post id shape, so they fit its protobuf blobs
+export const newPostId = () => `Ugkx${randomId(32)}`;
 export const newToken = (bytes = 32) => randomBytes(bytes).toString("base64url");
 
 export const isVideoId = (s: unknown): s is string => typeof s === "string" && /^[A-Za-z0-9_-]{11}$/.test(s);
 export const isChannelId = (s: unknown): s is string => typeof s === "string" && /^UC[A-Za-z0-9_-]{22}$/.test(s);
+export const isPostId = (s: unknown): s is string => typeof s === "string" && /^Ugkx[A-Za-z0-9_-]{32}$/.test(s);
 export const isPlaylistId = (s: unknown): s is string => typeof s === "string" && (/^PL[A-Za-z0-9_-]{32}$/.test(s) || s === "WL" || s === "LL");
 
 // instance secret for signing media URLs and opaque tokens; generated on

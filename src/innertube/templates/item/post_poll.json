@@ -1,0 +1,14 @@
+{
+	"pollRenderer": {
+		"choices": "{{CHOICES}}",
+		"totalVotes": {
+			"simpleText": "{{TOTAL_VOTES}}"
+		},
+		"accessibilityData": {
+			"accessibilityData": {
+				"label": "Poll"
+			}
+		},
+		"type": "{{POLL_TYPE}}"
+	}
+}

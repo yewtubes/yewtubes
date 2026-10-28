@@ -106,13 +106,19 @@ route(
 route("notification/modify_channel_preference", ({ viewer }) => ({ responseContext: responseContext(viewer), actions: [toast("Notification preferences saved")] }), { mutation: true });
 
 // the Share dialog (template share/panel). The entity names a video (field
-// 1), a playlist (2) or a channel (3), as the client's share buttons encode it
+// 1), a playlist (2), a channel (3) or a post (6), as the client's share buttons encode it
 async function shareTarget(entity: string, viewer: Viewer) {
 	let f: Map<number, (number | Uint8Array)[]> = new Map();
 	try {
 		f = decode(fromBase64(decodeURIComponent(entity)));
 	} catch {}
-	const [videoId, playlistId, channelId] = [1, 2, 3].map((n) => str(f.get(n)?.[0]) ?? "");
+	const [videoId, playlistId, channelId, postId] = [1, 2, 3, 6].map((n) => str(f.get(n)?.[0]) ?? "");
+	// a post (field 6, as its Share button encodes it)
+	if (postId) {
+		const { getPost } = await import("./posts");
+		const p = await getPost(postId, viewer);
+		if (p) return { url: `${PUBLIC_ORIGIN}/post/${p.id}`, title: p.text.slice(0, 100), summary: p.text.slice(0, 200), thumb: "" };
+	}
 	if (isVideoId(videoId)) {
 		const v = await getVideo(videoId, viewer);
 		if (v) return { url: isShort(v) && v.visibility === "public" ? `${PUBLIC_ORIGIN}/shorts/${v.id}` : `${PUBLIC_ORIGIN}/watch?v=${v.id}`, title: v.title, summary: v.description.slice(0, 200), thumb: `${PUBLIC_ORIGIN}/vi/${v.id}/maxresdefault.jpg` };

@@ -1,0 +1,27 @@
+{
+	"backstageImageRenderer": {
+		"image": {
+			"thumbnails": "{{IMAGE_THUMBS}}"
+		},
+		"command": {
+			"commandMetadata": {
+				"webCommandMetadata": {
+					"url": "/post/{{POST_ID}}",
+					"webPageType": "WEB_PAGE_TYPE_BROWSE",
+					"rootVe": 247244,
+					"apiUrl": "/youtubei/v1/browse"
+				}
+			},
+			"browseEndpoint": {
+				"browseId": "FEpost_detail",
+				"params": "{{b64:POST_ID+CHANNEL_ID:wgNaEhheXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4aJH5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+floYXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5e}}",
+				"canonicalBaseUrl": "/post/{{POST_ID}}"
+			}
+		},
+		"accessibility": {
+			"accessibilityData": {
+				"label": "Go to post detail"
+			}
+		}
+	}
+}

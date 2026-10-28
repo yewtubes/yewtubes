@@ -19,6 +19,7 @@ import { recordMiss } from "../diagnostics";
 import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelTab, tabParams, videoGridItems, videoGridReload } from "./channel";
 import { SETTINGS_PAGES, SETTINGS_PATHS, settingsPage } from "./settings";
 import { signInUrl } from "./vars";
+import { getPost, postCommand, postIdFromParams, postPage, postParams, postsContinuation } from "./posts";
 
 // the browse command for a channel tab, as the tab strip's endpoints have it
 function channelCommand(c: Channel, tab: ChannelTab) {
@@ -76,6 +77,12 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 	if (browseId === "FEplaylist_aggregation") return playlistsFeed(viewer, params);
 	if (browseId === "FEchannels") return channelsFeed(viewer);
 	if (browseId.startsWith("VL")) return playlistBrowse(browseId.slice(2), viewer);
+	if (browseId === "FEpost_detail") {
+		const id = postIdFromParams(params);
+		const r = id ? await postPage(id, viewer) : undefined;
+		if (!r) return undefined;
+		return { kind: "channel", title: r.channel.title, url: `/post/${r.post.id}`, command: postCommand(r.post.id, r.post.channel_id), response: r.response };
+	}
 	// settings pages (the signed-in client prefetches SPaccount_downloads);
 	// signed out, YouTube answers 401 and direct loads go to sign-in
 	if (browseId in SETTINGS_PAGES) {
@@ -116,8 +123,9 @@ async function continuation(token: string, viewer: Viewer) {
 		if (t.reload) return { responseContext: responseContext(viewer), ...(await videoGridReload(c, viewer, t.s ?? "newest", kind)) };
 		items = await videoGridItems(c, viewer, t.o, t.s ?? "newest", kind);
 		target = `browse-feed${c.id}${kind}`;
-	} else if (t.k === "comments") {
-		// the Shorts player's comments panel
+	} else if (t.k === "posts" && t.c) return postsContinuation(t.c, t.o, viewer);
+	else if (t.k === "comments" || t.k === "replies") {
+		// the Shorts player's comments panel and a post's comments
 		const { commentsContinuation } = await import("./comments");
 		return commentsContinuation(t as unknown as { v: string; s?: string; o?: number; k: string; t?: string }, viewer);
 	} else if (t.k === "playlist" && t.p) {
@@ -150,11 +158,17 @@ export async function resolvePath(url: URL): Promise<{ browseId: string; params?
 		const list = url.searchParams.get("list");
 		return list ? { browseId: `VL${list}` } : undefined;
 	}
-	const m = /^\/(?:@([A-Za-z0-9._-]{3,30})|channel\/(UC[A-Za-z0-9_-]{22}))(?:\/(featured|videos|shorts|playlists))?$/.exec(decodeURIComponent(p));
+	const post = /^\/post\/(Ugkx[A-Za-z0-9_-]{32})$/.exec(p);
+	if (post) {
+		const found = await getPost(post[1], null);
+		return found ? { browseId: "FEpost_detail", params: postParams(found.id, found.channel_id) } : undefined;
+	}
+	const m = /^\/(?:@([A-Za-z0-9._-]{3,30})|channel\/(UC[A-Za-z0-9_-]{22}))(?:\/(featured|videos|shorts|playlists|posts|community))?$/.exec(decodeURIComponent(p));
 	if (m) {
 		const c = await getChannel(m[1] ? { handle: m[1] } : { id: m[2] });
 		if (!c) return undefined;
-		return { browseId: c.id, params: m[3] ? tabParams(m[3] as ChannelTab) : undefined };
+		const tab = m[3] === "community" ? "posts" : m[3];
+		return { browseId: c.id, params: tab ? tabParams(tab as ChannelTab) : undefined };
 	}
 	return undefined;
 }

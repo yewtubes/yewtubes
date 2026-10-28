@@ -352,6 +352,180 @@ function channelShorts() {
 }
 
 // ======================================================================
+// posts: a channel's Posts tab and a post's own page (captures fgteev-*,
+// signed in and out), filled in by posts.ts
+// ======================================================================
+function postsTabItems(dir: string) {
+	const page = pageVar(body(dir, /^00[12]-.*posts\.resp$/));
+	const tab = page.contents.twoColumnBrowseResultsRenderer.tabs.find((t: any) => t.tabRenderer?.selected).tabRenderer;
+	return { page, section: tab.content.sectionListRenderer, items: tab.content.sectionListRenderer.contents[0].itemSectionRenderer.contents as any[] };
+}
+
+// a vote count as the post shows it ({accessibility, simpleText}), set whole
+const voteSlot = (name: string) => `{{${name}}}`;
+
+// a post (backstagePostRenderer in a thread, postRenderer on Home), tokenized
+function postTpl(raw: any, signedIn: boolean) {
+	const p = clean(structuredClone(raw));
+	const postId: string = p.postId;
+	const channelId: string = p.authorEndpoint.browseEndpoint.browseId;
+	const handle: string = p.authorEndpoint.browseEndpoint.canonicalBaseUrl?.slice(1) ?? find(p, "canonicalBaseUrl", (u) => /^\/@/.test(u))?.slice(1);
+	const name: string = contentOf(p.authorText);
+	p.contentText = "{{CONTENT}}";
+	p.authorThumbnail.thumbnails = "{{AUTHOR_THUMBS}}";
+	p.backstageAttachment = "{{ATTACHMENT}}";
+	p.publishedTimeText.runs[0].text = "{{PUBLISHED}}";
+	p.voteCount = voteSlot("VOTE");
+	p.voteStatus = "{{VOTE_STATUS}}";
+	const bar = p.actionButtons.commentActionButtonsRenderer;
+	const like = bar.likeButton.toggleButtonRenderer;
+	const dislike = bar.dislikeButton.toggleButtonRenderer;
+	like.accessibility.label = like.accessibilityData.accessibilityData.label = "{{LIKE_A11Y}}";
+	if (signedIn) {
+		like.isToggled = "{{LIKED}}";
+		dislike.isToggled = "{{DISLIKED}}";
+		const set = (b: any, which: string, token: string, vote: string) => {
+			const e = b[which].performCommentActionEndpoint;
+			e.action = `{{${token}}}`;
+			e.clientActions[0].updateCommentVoteAction.voteCount = voteSlot(vote);
+		};
+		set(like, "defaultServiceEndpoint", "LIKE_ACTION", "VOTE_LIKE");
+		set(like, "toggledServiceEndpoint", "UNLIKE_ACTION", "VOTE_UNLIKE");
+		set(dislike, "defaultServiceEndpoint", "DISLIKE_ACTION", "VOTE_DISLIKE");
+		set(dislike, "toggledServiceEndpoint", "UNDISLIKE_ACTION", "VOTE_UNDISLIKE");
+	}
+	const reply = bar.replyButton?.buttonRenderer;
+	if (reply) {
+		reply.text = { accessibility: { accessibilityData: { label: "{{COMMENT_COUNT_A11Y}}" } }, simpleText: "{{COMMENT_COUNT}}" };
+		reply.accessibility.label = reply.accessibilityData.accessibilityData.label = "{{COMMENT_COUNT_A11Y}}";
+	}
+	// the menu holds the viewer's actions on the post (Delete on their own)
+	if (p.actionMenu) p.actionMenu.menuRenderer.items = "{{MENU_ITEMS}}";
+	return tokenize(p, [[postId, "POST_ID"], [channelId, "CHANNEL_ID"], [handle, "AT_HANDLE"]], [[postId, "POST_ID"], [channelId, "CHANNEL_ID"]], [[name, "CHANNEL_NAME"]]);
+}
+
+function postThreadTpl(sample: any, signedIn: boolean) {
+	const thread = clean(structuredClone(sample));
+	thread.backstagePostThreadRenderer.post.backstagePostRenderer = postTpl(sample.backstagePostThreadRenderer.post.backstagePostRenderer, signedIn);
+	return thread;
+}
+
+// the video a post links to: YouTube's videoRenderer as the post shows it
+function postVideoTpl(sample: any) {
+	const v = clean(structuredClone(sample)).videoRenderer;
+	const id: string = v.videoId;
+	const title = contentOf(v.title);
+	const by = v.longBylineText.runs[0];
+	delete v.ownerBadges;
+	v.navigationEndpoint.watchEndpoint = { videoId: "{{VIDEO_ID}}" };
+	v.menu.menuRenderer.items = v.menu.menuRenderer.items.filter((it: any) => !it.menuServiceItemDownloadRenderer);
+	v.descriptionSnippet = { runs: [{ text: "{{SNIPPET}}" }] };
+	v.title.accessibility.accessibilityData.label = "{{TITLE}} {{DURATION_LABEL}}";
+	wholeToken(v.thumbnail, "thumbnails", "SEARCH_THUMBS");
+	wholeToken(v, "thumbnails", "AVATAR_68", (h) => /googleusercontent|ggpht/.test(JSON.stringify(h.thumbnails)));
+	wholeToken(v, "sources", "AVATAR_68", (h) => /googleusercontent|ggpht/.test(JSON.stringify(h.sources)));
+	let item = strings(dropKey({ videoRenderer: v }, "playerParams"), (x) => (x === `Go to channel ${by.text}` ? "Go to channel {{CHANNEL_NAME}}" : x));
+	item = dropKey(item, "watchEndpointSupportedOnesieConfig");
+	item = tokenize(
+		item,
+		[[id, "VIDEO_ID"], [title, "TITLE"], [by.navigationEndpoint.browseEndpoint.browseId, "CHANNEL_ID"], [by.navigationEndpoint.browseEndpoint.canonicalBaseUrl, "CHANNEL_URL"], [v.lengthText.accessibility.accessibilityData.label, "DURATION_LABEL"], [contentOf(v.viewCountText), "VIEWS_FULL"]],
+		[[id, "VIDEO_ID"], [by.navigationEndpoint.browseEndpoint.browseId, "CHANNEL_ID"]],
+		[[by.text, "CHANNEL_NAME"], [contentOf(v.publishedTimeText), "PUBLISHED"], [contentOf(v.lengthText), "DURATION"], [contentOf(v.shortViewCountText), "VIEWS_SHORT"], [v.shortViewCountText?.accessibility?.accessibilityData?.label, "VIEWS_SHORT_LABEL"]],
+	);
+	return { item: strings(item, (x) => x.replace(/&pp=[^&"]*/, "")), samples: [id, title] };
+}
+
+function posts() {
+	const signedIn = postsTabItems("fgteev-posts");
+	const signedOut = postsTabItems("fgteev-posts-out");
+	const att = (items: any[], key: string) => items.find((it) => it.backstagePostThreadRenderer?.post?.backstagePostRenderer?.backstageAttachment?.[key]);
+	const first = (items: any[]) => att(items, "videoRenderer");
+	const postId: string = first(signedIn.items).backstagePostThreadRenderer.post.backstagePostRenderer.postId;
+	const samples = [postId, "UCC-RHF_77zQdKcA75hr5oTQ", "FGTeeV Plays"];
+	save("item/post_thread_in", postThreadTpl(first(signedIn.items), true), samples);
+	save("item/post_thread_out", postThreadTpl(first(signedOut.items), false), samples);
+
+	// attachments: a video, one image, several images
+	const video = postVideoTpl(first(signedIn.items).backstagePostThreadRenderer.post.backstagePostRenderer.backstageAttachment);
+	save("item/post_video", video.item, video.samples);
+	const imageOf = (thread: any) => clean(structuredClone(thread.backstagePostThreadRenderer.post.backstagePostRenderer));
+	const one = imageOf(att(signedIn.items, "backstageImageRenderer"));
+	const img = one.backstageAttachment.backstageImageRenderer;
+	img.image.thumbnails = "{{IMAGE_THUMBS}}";
+	save("item/post_image", tokenize(one.backstageAttachment, [[one.postId, "POST_ID"], [one.authorEndpoint.browseEndpoint.browseId, "CHANNEL_ID"]], [[one.postId, "POST_ID"], [one.authorEndpoint.browseEndpoint.browseId, "CHANNEL_ID"]]), [one.postId]);
+	const many = imageOf(att(signedIn.items, "postMultiImageRenderer"));
+	const each = many.backstageAttachment.postMultiImageRenderer.images[0];
+	each.backstageImageRenderer.image.thumbnails = "{{IMAGE_THUMBS}}";
+	save("item/post_multi_image_item", tokenize(each, [[many.postId, "POST_ID"], [many.authorEndpoint.browseEndpoint.browseId, "CHANNEL_ID"]], [[many.postId, "POST_ID"], [many.authorEndpoint.browseEndpoint.browseId, "CHANNEL_ID"]]), [many.postId]);
+	many.backstageAttachment.postMultiImageRenderer.images = "{{IMAGES}}";
+	save("item/post_multi_image", many.backstageAttachment);
+
+	// the Posts tab: its section of post threads (and their continuation)
+	const section = clean(structuredClone(signedIn.section));
+	section.contents[0].itemSectionRenderer.contents = "{{ITEMS}}";
+	save("channel/posts_sections", section);
+
+	// a post's page: the post, then its comments section loaded by continuation
+	const page = pageVar(body("fgteev-post", /^002-.*\.resp$/));
+	const tabs = clean(structuredClone(page.contents.twoColumnBrowseResultsRenderer.tabs));
+	const list = tabs[0].tabRenderer.content.sectionListRenderer.contents;
+	list[0].itemSectionRenderer.contents = ["{{POST}}"];
+	find(list[1], "continuationCommand").token = "{{COMMENTS_TOKEN}}";
+	// the page's microformat (as channel/page keeps it: no app links, tags or
+	// country list), with the post's schema.org posting
+	const mf = clean(page.microformat.microformatDataRenderer);
+	const title: string = mf.title;
+	for (const k of ["appName", "androidPackage", "iosAppStoreId", "iosAppArguments", "urlApplinksWeb", "urlApplinksIos", "urlApplinksAndroid", "urlTwitterIos", "urlTwitterAndroid", "linkAlternates", "tags", "availableCountries"]) delete mf[k];
+	mf.title = mf.description = "{{TEXT_SHORT}}";
+	mf.thumbnail.thumbnails = "{{AVATAR_200}}";
+	mf.pageOwnerDetails.name = "{{CHANNEL_NAME}}";
+	mf.publishDate = "{{PUBLISH_DATE}}";
+	const dfp = mf.postDetails.discussionForumPosting;
+	Object.assign(dfp, { datePublished: "{{PUBLISH_DATE}}", headline: "{{TEXT_SHORT}}", text: "{{TEXT}}" });
+	dfp.author = { ...dfp.author, name: "{{CHANNEL_NAME}}", url: "{{ORIGIN}}/{{AT_HANDLE}}" };
+	dfp.interactionStatistic[0].userInteractionCount = "{{LIKE_COUNT}}";
+	const out = tokenize(
+		{ tabs, metadata: { channelMetadataRenderer: { title: "{{CHANNEL_NAME}}", externalId: "{{CHANNEL_ID}}" } }, microformat: { microformatDataRenderer: mf } },
+		[[postId, "POST_ID"]],
+		[[postId, "POST_ID"]],
+	);
+	save("post/page", out, [postId, title]);
+
+	// a channel's Home: YouTube's Posts shelf of postRenderers (signed out;
+	// signed in the post gets the thread's like/dislike buttons)
+	const home = pageVar(body("home-MrBeast", /^00[12]-.*\.resp$/));
+	const homeSections = home.contents.twoColumnBrowseResultsRenderer.tabs.find((t: any) => t.tabRenderer?.selected).tabRenderer.content.sectionListRenderer.contents;
+	const shelf = clean(structuredClone(homeSections.find((x: any) => contentOf(find(x, "shelfRenderer")?.title) === "Posts")));
+	const sr = find(shelf, "shelfRenderer");
+	const homeItems: any[] = sr.content.horizontalListRenderer.items;
+	const homePost = homeItems.find((it) => it.postRenderer.backstageAttachment?.backstageImageRenderer).postRenderer;
+	const homeChannel: string = homePost.authorEndpoint.browseEndpoint.browseId;
+	const homeOut = postTpl(homePost, false);
+	save("item/post_home_out", { postRenderer: homeOut }, [homePost.postId, homeChannel]);
+	const homeIn = structuredClone(homeOut);
+	homeIn.actionButtons = postTpl(first(signedIn.items).backstagePostThreadRenderer.post.backstagePostRenderer, true).actionButtons;
+	save("item/post_home_in", { postRenderer: homeIn }, [homePost.postId, homeChannel]);
+	sr.content.horizontalListRenderer.items = "{{ITEMS}}";
+	sr.endpoint.commandMetadata.webCommandMetadata.url = "/{{AT_HANDLE}}/posts";
+	sr.endpoint.browseEndpoint = { browseId: "{{CHANNEL_ID}}", params: "{{POSTS_PARAMS}}", canonicalBaseUrl: "/{{AT_HANDLE}}" };
+	save("channel/posts_shelf", tokenize(shelf, [[homeChannel, "CHANNEL_ID"]]), [homeChannel]);
+
+	// a text poll; each signed-out choice asks to sign in (signed in, posts.ts
+	// gives each choice its select/deselect endpoints and vote ratios, which
+	// the client's poll reads)
+	const pollPost = homeItems.find((it) => it.postRenderer.backstageAttachment?.pollRenderer).postRenderer;
+	const poll = clean(structuredClone(pollPost.backstageAttachment));
+	const choice = poll.pollRenderer.choices[0];
+	choice.text = { runs: [{ text: "{{TEXT}}" }] };
+	choice.signinEndpoint.signInEndpoint.nextEndpoint = "{{NEXT_ENDPOINT}}";
+	save("item/post_poll_choice_out", tokenize(choice, [[homeChannel, "CHANNEL_ID"]]), [homeChannel]);
+	poll.pollRenderer.choices = "{{CHOICES}}";
+	poll.pollRenderer.totalVotes = { simpleText: "{{TOTAL_VOTES}}" };
+	poll.pollRenderer.type = "{{POLL_TYPE}}";
+	save("item/post_poll", poll);
+}
+
+// ======================================================================
 // channel
 // ======================================================================
 function channel() {
@@ -2417,6 +2591,7 @@ const steps: [string, () => void][] = [
 	["home-shorts", homeShorts],
 	["home-chips", homeChips],
 	["channel-shorts", channelShorts],
+	["posts", posts],
 	["watch", watch],
 	["search", search],
 	["playlist", playlistPage],
