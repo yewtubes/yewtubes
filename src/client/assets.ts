@@ -160,7 +160,10 @@ export async function serveClientAsset(req: Request, url: URL): Promise<Response
 			if (raw) body = patched("app:main", raw, "app", pin.app.jsUrl);
 		}
 	} else if (url.pathname.startsWith("/s/_/ytmainappweb/_/ss/")) {
-		body = await original(pin.app.cssUrl);
+		// ?dark: the dark compile, linked by pages rendered dark (page.ts)
+		const darkPath = `${archivePath(pin.app.cssUrl)}.dark`;
+		const dark = url.searchParams.has("dark") && pin.app.darkCss && existsSync(darkPath) ? readFileSync(darkPath) : undefined;
+		body = dark ?? (await original(pin.app.cssUrl));
 	} else {
 		const raw = await original(upstream);
 		if (raw && url.pathname.startsWith(`/s/player/${pin.player.id}/`) && url.pathname.endsWith(".js")) {

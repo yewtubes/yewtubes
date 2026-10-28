@@ -859,6 +859,14 @@
 				"sha256": "c78fa5d4bd92a746b8fdcf0fac125ae07471e530e6c03e289506083a7a27a871",
 				"size": 213
 			}
+		},
+		"darkCss": {
+			"from": [
+				"https://www.youtube.com/s/_/ytmainappweb/_/ss/k=ytmainappweb.kevlar_base.IDS_I8Q8DT0.L.W.O/am=AAAAIADAAAHAng/d=0/br=1/rs=AGKMywHu3BrnbPsiG91jS-zHtx7fvDEcvg",
+				"https://www.youtube.com/s/_/ytmainappweb/_/ss/k=ytmainappweb.kevlar_base.IDS_I8Q8DT0.L.W.O/am=AAAAAAHAgGcAmA/d=0/br=1/rs=AGKMywEUV6D1vLv_rOwA3c5C9xpIhLm0nA"
+			],
+			"sha256": "250c7c94cdc7d4cb006ff5e9ab564311bd4de86946760dc6a463e4e54adfdc5f",
+			"size": 3182294
 		}
 	},
 	"pages": {

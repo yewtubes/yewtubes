@@ -251,6 +251,8 @@ export function renderPage(data: PageData, viewer: Viewer, nonce: string, dark =
 		{ name: "nonce", find: /nonce="[^"]*"/g, replace: () => `nonce="${nonce}"` },
 		// the dark theme is the dark attribute on <html>, as YouTube's server renders it
 		{ name: "theme", find: /<html (?=[^>]*\bdarker-dark-theme\b)/g, replace: () => (dark ? "<html dark " : "<html ") },
+		// and its stylesheet is the dark compile, as YouTube's server links it
+		{ name: "theme-stylesheet", find: /(<link rel="stylesheet" href="https:\/\/www\.youtube\.com\/s\/_\/ytmainappweb\/_\/ss\/[^"?]*)"/g, replace: (m) => (dark && pin.app.darkCss ? `${m[1]}?dark"` : `${m[1]}"`) },
 		{ name: "attestation", find: /\(function\(\) \{if \(window\.ytAtN\) \{window\.ytAtN\(\{[\s\S]*?\}\);\}\}\)\(\);/g, replace: () => "", optional: true },
 		{
 			name: "server-contract",

@@ -103,6 +103,21 @@ a day. They are served at `/ggpht/<channelId>/avatar` and
 `/ggpht/<channelId>/banner` (and `avatar-default`, the letter picture), with
 ETags so a change shows everywhere at once.
 
+## Dark theme
+
+The main client follows the Appearance setting (Light, Dark or device),
+resolved on the server before the page paints. A dark page links the
+stylesheet's dark compile, as YouTube's server does. YouTube only serves the
+dark compile of its current build, so the pinned build's is derived from a
+current light/dark pair and archived beside the light sheet
+(`pin/client.json` records the pair and the hash):
+
+```sh
+bun scripts/derive-dark-css.ts '<kevlar_base css url, PREF f6=80000>' '<same build, PREF f6=400>'
+```
+
+Run it again after re-pinning the client.
+
 ## Checking an instance
 
 ```sh

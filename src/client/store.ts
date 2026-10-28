@@ -33,6 +33,10 @@ export type Pin = {
 		initial: string[];
 		// per-module code pieces, fetched one module at a time
 		modules: Record<string, { sha256: string; size: number }>;
+		// the stylesheet's dark compile (scripts/derive-dark-css.ts), archived
+		// beside the light one as <cssUrl archive path>.dark, and the current
+		// build's light/dark pair it was made from
+		darkCss?: { from: [string, string]; sha256: string; size: number };
 	};
 	pages: Record<string, { url: string; sha256: string; size: number }>;
 	assets: PinnedAsset[];
