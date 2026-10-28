@@ -201,6 +201,8 @@ function save(name: string, data: unknown, samples: string[] = []) {
 	// a duration badge carries YouTube's music note for Music videos
 	// (DURATION_ICON, left out of the response when unset)
 	for (const b of findAll(data, "thumbnailBadgeViewModel")) if (b.text === "{{DURATION}}" && !b.icon) Object.assign(b, { icon: "{{DURATION_ICON}}", ...b });
+	// and the red bar of how much the viewer watched (PROGRESS_BAR, the same)
+	for (const o of findAll(data, "thumbnailBottomOverlayViewModel")) if (!o.progressBar && JSON.stringify(o).includes("{{DURATION}}")) Object.assign(o, { progressBar: "{{PROGRESS_BAR}}", ...o });
 	const text = JSON.stringify(data);
 	const bad: string[] = [];
 	const host = FORBIDDEN_HOSTS.exec(text);
@@ -768,6 +770,30 @@ function feeds() {
 	sg.contents = "{{ITEMS}}";
 	save("subscriptions/page", tokenize(subs, []));
 	save("subscriptions/signed_out", tokenize(pageOnly(pageVar(body("feed-subscriptions", /^001-/))), []));
+
+	// the Shorts shelf two rows down, with "View all" (the Shorts page
+	// below); its items are item/shorts_lockup_rich, as on home
+	const subs2 = pageOnly(pageVar(body("in-subscriptions2", /^001-/)));
+	const shelf = clean(gridOf(subs2).contents.find((it: any) => find(it, "richShelfRenderer") && find(it, "shortsLockupViewModel")));
+	find(shelf, "richShelfRenderer").contents = "{{ITEMS}}";
+	save("subscriptions/shorts_shelf", tokenize(shelf, []));
+	// /feed/subscriptions/shorts: the subscriptions' Shorts in a grid
+	const sp = pageOnly(pageVar(body("in-subs-shorts", /^001-/)));
+	// its items: the Shorts grid style (views over the thumbnail, no title row)
+	const gi = structuredClone(gridOf(sp).contents.find((it: any) => find(it, "shortsLockupViewModel")));
+	const glv = find(gi, "shortsLockupViewModel");
+	const gid: string = glv.onTap.innertubeCommand.reelWatchEndpoint.videoId;
+	const gviews: string = glv.overlayMetadata.secondaryText.content;
+	for (const k of ["inlinePopStateEntityKey", "indexInCollection"]) delete glv[k];
+	const greel = glv.onTap.innertubeCommand.reelWatchEndpoint;
+	for (const k of ["playerParams", "params", "sequenceParams", "loggingContext", "ustreamerConfig"]) delete greel[k];
+	greel.thumbnail.thumbnails = "{{REEL_THUMBS}}";
+	glv.thumbnailViewModel.thumbnailViewModel.image.sources = "{{THUMBS}}";
+	glv.accessibilityText = "{{A11Y}}";
+	const gitem = tokenize(strings(dropKey(clean(gi), "playerParams"), (x) => x.replace(/&pp=[^&"]*/, "")), [[gid, "VIDEO_ID"], [gviews, "VIEWS_SHORT"]], [[gid, "VIDEO_ID"]]);
+	save("item/shorts_lockup_grid", gitem, [gid]);
+	gridOf(sp).contents = "{{ITEMS}}";
+	save("subscriptions/shorts_page", tokenize(sp, []));
 }
 
 // home's Shorts shelf: YouTube's richShelfRenderer of shortsLockupViewModels

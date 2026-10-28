@@ -5,7 +5,7 @@
 // related videos, autoplay and the end screen.
 
 import type { Viewer } from "../client/page";
-import { getVideo, isSubscribed, reactionOf, relatedVideos } from "../data";
+import { getVideo, isSubscribed, markWatched, reactionOf, relatedVideos } from "../data";
 import { encodeToken } from "../ids";
 import { topbar } from "./chrome";
 import { entityKey as protoKey } from "./proto";
@@ -27,7 +27,7 @@ export const likeStatusMutation = (videoId: string, reaction: string | null | un
 const relatedLockup = (v: Video, viewer: Viewer) => make(viewer ? "item/video_lockup_compact" : "item/video_lockup_compact_out", { ...baseVars(viewer, `/watch?v=${v.id}`), ...videoVars(v) });
 
 export async function relatedItems(v: Video, viewer: Viewer, offset: number) {
-	const related = await relatedVideos(v, RELATED_PAGE, offset);
+	const related = await markWatched(viewer, await relatedVideos(v, RELATED_PAGE, offset));
 	const items: unknown[] = related.map((r) => relatedLockup(r, viewer));
 	if (related.length === RELATED_PAGE) items.push(make("item/continuation_related", { CONTINUATION: encodeToken({ k: "related", v: v.id, o: offset + RELATED_PAGE }) }));
 	return { items, videos: related };

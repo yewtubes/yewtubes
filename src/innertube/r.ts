@@ -27,6 +27,8 @@ export type Video = {
 	width: number | null;
 	height: number | null;
 	category_id?: number;
+	// the viewer's position in it (data.ts markWatched)
+	watched_ms?: number;
 	subscriber_count?: number;
 };
 

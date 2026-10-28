@@ -1,0 +1,101 @@
+{
+	"richSectionRenderer": {
+		"content": {
+			"richShelfRenderer": {
+				"title": {
+					"runs": [
+						{
+							"text": "Shorts"
+						}
+					]
+				},
+				"contents": "{{ITEMS}}",
+				"menu": {
+					"menuRenderer": {
+						"topLevelButtons": [
+							{
+								"buttonRenderer": {
+									"style": "STYLE_BLUE_TEXT",
+									"size": "SIZE_DEFAULT",
+									"isDisabled": false,
+									"text": {
+										"runs": [
+											{
+												"text": "View all"
+											}
+										]
+									},
+									"navigationEndpoint": {
+										"commandMetadata": {
+											"webCommandMetadata": {
+												"url": "/feed/subscriptions/shorts",
+												"webPageType": "WEB_PAGE_TYPE_BROWSE",
+												"rootVe": 6827,
+												"apiUrl": "/youtubei/v1/browse"
+											}
+										},
+										"browseEndpoint": {
+											"browseId": "FEsubscriptions_shorts"
+										}
+									},
+									"accessibilityData": {
+										"accessibilityData": {
+											"label": "View all"
+										}
+									}
+								}
+							}
+						]
+					}
+				},
+				"showMoreButton": {
+					"buttonRenderer": {
+						"style": "STYLE_OPACITY",
+						"size": "SIZE_DEFAULT",
+						"text": {
+							"runs": [
+								{
+									"text": "Show more"
+								}
+							]
+						},
+						"icon": {
+							"iconType": "EXPAND"
+						},
+						"accessibility": {
+							"label": "Show more"
+						}
+					}
+				},
+				"isExpanded": false,
+				"icon": {
+					"iconType": "YOUTUBE_SHORTS_BRAND_24"
+				},
+				"isTopDividerHidden": false,
+				"isBottomDividerHidden": false,
+				"showLessButton": {
+					"buttonRenderer": {
+						"style": "STYLE_OPACITY",
+						"size": "SIZE_DEFAULT",
+						"text": {
+							"runs": [
+								{
+									"text": "Show less"
+								}
+							]
+						},
+						"icon": {
+							"iconType": "COLLAPSE"
+						},
+						"accessibility": {
+							"label": "Show less"
+						}
+					}
+				},
+				"responsiveContainerConfiguration": {
+					"enableContentSpecificAspectRatio": true
+				}
+			}
+		}
+	}
+}

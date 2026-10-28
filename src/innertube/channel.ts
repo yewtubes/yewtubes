@@ -5,7 +5,7 @@
 
 import type { Viewer } from "../client/page";
 import { PUBLIC_ORIGIN } from "../config";
-import { channelVideos, isSubscribed } from "../data";
+import { channelVideos, isSubscribed, markWatched } from "../data";
 import { encodeToken } from "../ids";
 import { channelPlaylistLockups } from "./playlists";
 import { type Channel, dateText, grouped } from "./r";
@@ -35,7 +35,7 @@ export function tabParams(tab: ChannelTab): string {
 const gridTarget = (c: Channel, kind: GridKind) => `browse-feed${c.id}${kind}`;
 
 export async function videoGridItems(c: Channel, viewer: Viewer, offset: number, sort: ChannelSort, kind: GridKind = "videos"): Promise<unknown[]> {
-	const videos = await channelVideos(c.id, viewer, CHANNEL_PAGE, offset, sort, kind);
+	const videos = await markWatched(viewer, await channelVideos(c.id, viewer, CHANNEL_PAGE, offset, sort, kind));
 	const items: unknown[] = videos.map((v) => (kind === "shorts" ? shortLockup(v, viewer) : make("item/video_lockup_channel", { ...baseVars(viewer, `/@${c.handle}/videos`), ...videoVars(v) })));
 	if (videos.length === CHANNEL_PAGE) items.push(make("item/continuation", { CONTINUATION: encodeToken({ k: "chvideos", c: c.id, o: offset + CHANNEL_PAGE, s: sort, f: kind }) }));
 	return items;
@@ -61,7 +61,7 @@ export async function videoGridReload(c: Channel, viewer: Viewer, sort: ChannelS
 
 async function homeTab(c: Channel, viewer: Viewer, vars: Vars) {
 	const shelf = async (title: string, sort: ChannelSort) => {
-		const videos = await channelVideos(c.id, viewer, 12, 0, sort);
+		const videos = await markWatched(viewer, await channelVideos(c.id, viewer, 12, 0, sort));
 		if (!videos.length) return undefined;
 		return make("channel/home_shelf", {
 			...vars,

@@ -32,7 +32,8 @@
 										"icon": "{{DURATION_ICON}}"
 									}
 								}
-							]
+							],
+							"progressBar": "{{PROGRESS_BAR}}"
 						}
 					},
 					{},

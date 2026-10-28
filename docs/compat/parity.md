@@ -45,7 +45,8 @@ Every page, menu, dialog and workflow of the pinned YouTube desktop client and Y
 | `/playlist?list=` | lockups, guide | out, in | playlist · `browse VL…` | playlists table | ✓✓✓✓ | browser verified | manual, survey | — |
 | `/playlist?list=WL`, `LL` | guide, You | in | playlist · `browse VLWL` / `VLLL` | watch_later, ratings | ✓✓✓✓ | browser verified | e2e:core, survey | — |
 | `/playlist?list=WL` signed out | guide | out | — | — | ✗ | implemented | survey | Answers 404; YouTube shows the playlist page with a sign-in alert |
-| `/feed/subscriptions` | guide | in | browse · `FEsubscriptions` | subscriptions | ✓✓✓✓ | browser verified | survey, manual | — |
+| `/feed/subscriptions` | guide | in | browse · `FEsubscriptions` | subscriptions, watch_history (progress bars) | ✓✓✓✓ | browser verified | survey, manual | Shorts on their own shelf two rows down ("View all" opens the Shorts page) |
+| `/feed/subscriptions/shorts` | Subscriptions' Shorts shelf "View all" | in | browse · `FEsubscriptions_shorts` | subscriptions | ✓✓✓✓ | browser verified | manual | — |
 | `/feed/subscriptions` signed out | guide | out | browse · sign-in promo | — | ✓✓✓✓ | browser verified | survey | — |
 | `/feed/you` | guide | out, in | browse · `FEyou` (sign-in promo when out) | — | ✓✓✓✓ | browser verified | survey | — |
 | `/feed/history` | guide, You | out, in | browse · `FEhistory`, `feedback` (remove, clear, pause, turn on) | watch_history, users.history_paused, videos.category_id | ✓✓✓✓ | browser verified | e2e:core, survey | All/Videos/Shorts/Music chips, each day's Shorts in a reel shelf. The paused toggle ("Turn on watch history") has no capture: it acts without a confirm dialog. My Activity links lead to `/myaccount/activity`. Search history view (`?view=search`) shows watch history |

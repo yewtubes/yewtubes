@@ -24,6 +24,8 @@ export function videoVars(v: Video): Vars {
 		DURATION_LABEL: durationLabel(v.duration_ms),
 		// YouTube's music note before a Music video's duration
 		DURATION_ICON: v.category_id === MUSIC_CATEGORY ? { sources: [{ clientResource: { imageName: "MUSIC" } }] } : undefined,
+		// the red bar on a video the viewer has watched some of
+		PROGRESS_BAR: v.watched_ms && v.duration_ms ? { thumbnailOverlayProgressBarViewModel: { startPercent: Math.max(1, Math.min(100, Math.round((v.watched_ms / v.duration_ms) * 100))) } } : undefined,
 		VIEWS: v.view_count ? compact(v.view_count) : "No views",
 		VIEWS_LABEL: countLabel(v.view_count, "view"),
 		VIEWS_FULL: v.view_count === 1 ? "1 view" : `${grouped(v.view_count)} views`,

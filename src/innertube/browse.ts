@@ -8,7 +8,7 @@ import type { PageData, PageKind, Viewer } from "../client/page";
 import { type HomeFilter, getChannel } from "../data";
 import { decodeToken, encodeToken, isChannelId } from "../ids";
 import { topbar } from "./chrome";
-import { homeChipReload, homeItems, homePage, subscriptionsItems, subscriptionsPage } from "./feeds";
+import { homeChipReload, homeItems, homePage, subscriptionShortsItems, subscriptionShortsPage, subscriptionsItems, subscriptionsPage } from "./feeds";
 import { notificationsInbox } from "./guide";
 import { historyContinuation, historyPage } from "./history";
 import { channelsPage, channelsReload, playlistsPage, playlistsReload, youPage } from "./library";
@@ -41,6 +41,10 @@ async function subscriptions(viewer: Viewer): Promise<BrowseResult> {
 	return { kind: "home", title: "Subscriptions", url: "/feed/subscriptions", command: browseEndpoint("FEsubscriptions", "/feed/subscriptions", "WEB_PAGE_TYPE_BROWSE", 96368), response: await subscriptionsPage(viewer) };
 }
 
+async function subscriptionShorts(viewer: Viewer): Promise<BrowseResult> {
+	return { kind: "home", title: "Shorts", url: "/feed/subscriptions/shorts", command: browseEndpoint("FEsubscriptions_shorts", "/feed/subscriptions/shorts", "WEB_PAGE_TYPE_BROWSE", 6827), response: await subscriptionShortsPage(viewer) };
+}
+
 async function history(viewer: Viewer, params?: string, query?: string): Promise<BrowseResult> {
 	return { kind: "home", title: "History", url: "/feed/history", command: browseEndpoint("FEhistory", "/feed/history", "WEB_PAGE_TYPE_BROWSE", 6827), response: await historyPage(viewer, params, query) };
 }
@@ -66,6 +70,7 @@ async function channelsFeed(viewer: Viewer): Promise<BrowseResult> {
 export async function buildBrowse(browseId: string, params: string | undefined, viewer: Viewer, query?: string): Promise<BrowseResult | undefined> {
 	if (browseId === "FEwhat_to_watch") return home(viewer);
 	if (browseId === "FEsubscriptions") return subscriptions(viewer);
+	if (browseId === "FEsubscriptions_shorts") return subscriptionShorts(viewer);
 	if (browseId === "FEhistory") return history(viewer, params, query);
 	if (browseId === "FElibrary" || browseId === "FEyou") return library(viewer);
 	if (browseId === "FEplaylist_aggregation") return playlistsFeed(viewer, params);
@@ -97,6 +102,7 @@ async function continuation(token: string, viewer: Viewer) {
 	if (t.k === "home") [items, target] = [await homeItems(viewer, t.o, homeFilter(t.f)), "browse-feedFEwhat_to_watch"];
 	else if (t.k === "homechip") return { responseContext: responseContext(viewer), onResponseReceivedActions: [await homeChipReload(viewer, homeFilter(t.f))] };
 	else if (t.k === "subs") [items, target] = [await subscriptionsItems(viewer, t.o), "browse-feedFEsubscriptions"];
+	else if (t.k === "subshorts") [items, target] = [await subscriptionShortsItems(viewer, t.o), "browse-feedFEsubscriptions_shorts"];
 	else if (t.k === "history") return historyContinuation(viewer, t.o, t.q, t.f);
 	else if (t.k === "plfeed" || t.k === "chfeed") {
 		if (!viewer) throw new ApiError(401, "Sign in to do this.", "authError");
@@ -137,7 +143,7 @@ route("browse", async ({ body, viewer }) => {
 
 export async function resolvePath(url: URL): Promise<{ browseId: string; params?: string } | undefined> {
 	const p = url.pathname.replace(/\/$/, "") || "/";
-	const feeds: Record<string, string> = { "/": "FEwhat_to_watch", "/feed/subscriptions": "FEsubscriptions", "/feed/history": "FEhistory", "/feed/you": "FElibrary", "/feed/library": "FElibrary", "/feed/playlists": "FEplaylist_aggregation", "/feed/channels": "FEchannels" };
+	const feeds: Record<string, string> = { "/": "FEwhat_to_watch", "/feed/subscriptions": "FEsubscriptions", "/feed/subscriptions/shorts": "FEsubscriptions_shorts", "/feed/history": "FEhistory", "/feed/you": "FElibrary", "/feed/library": "FElibrary", "/feed/playlists": "FEplaylist_aggregation", "/feed/channels": "FEchannels" };
 	if (feeds[p]) return { browseId: feeds[p] };
 	if (SETTINGS_PATHS[p]) return { browseId: SETTINGS_PATHS[p] };
 	if (p === "/playlist") {

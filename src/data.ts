@@ -3,7 +3,7 @@
 // with the id but never in listings, and deleted ones to nobody.
 
 import type { Viewer } from "./client/page";
-import { sql } from "./db";
+import { sql, textArray } from "./db";
 import type { Channel, Video } from "./innertube/r";
 
 const VIDEO_COLUMNS = sql`v.id, v.title, v.description, v.channel_id, c.title as channel_title, c.handle as channel_handle, c.avatar_path as channel_avatar,
@@ -15,6 +15,16 @@ export async function getVideo(id: string, viewer: Viewer): Promise<Video | unde
 	if (!v) return undefined;
 	if (v.visibility === "private" && viewer?.channelId !== v.channel_id) return undefined;
 	return v as Video;
+}
+
+// how far the viewer got into each video (watched_ms), for the red progress
+// bar YouTube draws on watched videos' thumbnails; returns the same rows
+export async function markWatched<T extends Video>(viewer: Viewer, videos: T[]): Promise<T[]> {
+	if (!viewer || !videos.length) return videos;
+	const rows = await sql`select video_id, position_ms from watch_history where user_id = ${viewer.userId} and video_id = any(${textArray(videos.map((v) => v.id))}::text[])`;
+	const at = new Map<string, number>(rows.map((r: { video_id: string; position_ms: number }) => [r.video_id, Number(r.position_ms)]));
+	for (const v of videos) if (at.has(v.id)) v.watched_ms = at.get(v.id);
+	return videos;
 }
 
 // public, playable videos for feeds and search
@@ -127,8 +137,10 @@ export async function subscribedChannels(viewer: Viewer, order: ChannelSortOrder
 		from subscriptions s join channels c on c.id = s.channel_id where s.user_id = ${viewer.userId}) c order by ${by}`) as Channel[];
 }
 
-export async function subscriptionFeed(viewer: Viewer, limit: number, offset: number): Promise<Video[]> {
+// the subscriptions feed: videos in the grid, Shorts on their shelf and page
+export async function subscriptionFeed(viewer: Viewer, limit: number, offset: number, kind: "videos" | "shorts" = "videos"): Promise<Video[]> {
 	if (!viewer) return [];
+	const shape = kind === "shorts" ? sql`coalesce(${SHORT}, false)` : sql`not coalesce(${SHORT}, false)`;
 	return (await sql`select ${VIDEO_COLUMNS} from videos v join channels c on c.id = v.channel_id join subscriptions s on s.channel_id = v.channel_id and s.user_id = ${viewer.userId}
-		where ${LISTED} order by v.published_at desc, v.id limit ${limit} offset ${offset}`) as Video[];
+		where ${LISTED} and ${shape} order by v.published_at desc, v.id limit ${limit} offset ${offset}`) as Video[];
 }

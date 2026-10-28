@@ -1,0 +1,44 @@
+{
+	"contents": {
+		"twoColumnBrowseResultsRenderer": {
+			"tabs": [
+				{
+					"tabRenderer": {
+						"selected": true,
+						"content": {
+							"richGridRenderer": {
+								"contents": "{{ITEMS}}",
+								"title": {
+									"simpleText": "Shorts"
+								},
+								"targetId": "browse-feedFEsubscriptions_shorts",
+								"reflowOptions": {
+									"minimumRowsOfVideosAtStart": 2,
+									"minimumRowsOfVideosBetweenSections": 1
+								},
+								"style": "RICH_GRID_STYLE_SHORTS_GRID"
+							}
+						},
+						"tabIdentifier": "FEsubscriptions_shorts",
+						"accessibility": {
+							"accessibilityData": {
+								"label": "subscriptions_shorts"
+							}
+						}
+					}
+				}
+			]
+		}
+	},
+	"header": {
+		"feedTabbedHeaderRenderer": {
+			"title": {
+				"runs": [
+					{
+						"text": "Shorts"
+					}
+				]
+			}
+		}
+	}
+}

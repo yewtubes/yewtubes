@@ -7,6 +7,7 @@ import { baseVars, videoVars } from "./vars";
 import { viewerVars } from "./chrome";
 import type { Viewer } from "../client/page";
 import { PUBLIC_ORIGIN } from "../config";
+import { markWatched } from "../data";
 import { type Channel, type Video, avatarUrl, compact, grouped, lockupSources, shortAgo, videoThumbnails, content, duration, durationLabel, playlistEndpoint, plural, responseContext, runs, serviceEndpoint, text, watchEndpoint } from "./r";
 import { sql, textArray } from "../db";
 import { encodeToken, isVideoId, newPlaylistId, randomId } from "../ids";
@@ -243,7 +244,7 @@ function otherRow(p: Playlist, v: Video, viewer: Viewer) {
 }
 
 async function rows(p: Playlist, viewer: Viewer, offset: number) {
-	const vids = await playlistVideos(p, viewer, PAGE, offset);
+	const vids = await markWatched(viewer, await playlistVideos(p, viewer, PAGE, offset));
 	const own = ownLayout(p, viewer);
 	const items: unknown[] = vids.map((v, i) => (own ? ownRow(p, v, offset + i) : otherRow(p, v, viewer)));
 	const more = vids.length === PAGE ? encodeToken({ k: "playlist", p: p.id, o: offset + PAGE }) : undefined;

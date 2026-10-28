@@ -1,0 +1,50 @@
+{
+	"richItemRenderer": {
+		"content": {
+			"shortsLockupViewModel": {
+				"entityId": "shorts-shelf-item-{{VIDEO_ID}}",
+				"accessibilityText": "{{A11Y}}",
+				"onTap": {
+					"innertubeCommand": {
+						"commandMetadata": {
+							"webCommandMetadata": {
+								"url": "/shorts/{{VIDEO_ID}}",
+								"webPageType": "WEB_PAGE_TYPE_SHORTS",
+								"rootVe": 37414
+							}
+						},
+						"reelWatchEndpoint": {
+							"videoId": "{{VIDEO_ID}}",
+							"thumbnail": {
+								"thumbnails": "{{REEL_THUMBS}}",
+								"isOriginalAspectRatio": true
+							},
+							"overlay": {
+								"reelPlayerOverlayRenderer": {
+									"style": "REEL_PLAYER_OVERLAY_STYLE_SHORTS",
+									"reelPlayerNavigationModel": "REEL_PLAYER_NAVIGATION_MODEL_UNSPECIFIED"
+								}
+							},
+							"sequenceProvider": "REEL_WATCH_SEQUENCE_PROVIDER_RPC"
+						}
+					}
+				},
+				"style": "SHORTS_LOCKUP_STYLE_SLIM",
+				"overlayMetadata": {
+					"secondaryText": {
+						"content": "{{VIEWS_SHORT}}"
+					}
+				},
+				"thumbnailViewModel": {
+					"thumbnailViewModel": {
+						"image": {
+							"sources": "{{THUMBS}}"
+						}
+					}
+				},
+				"stackedFrameData": {},
+				"titleTruncationStyle": "SHORTS_LOCKUP_TITLE_TRUNCATION_STYLE_UNKNOWN"
+			}
+		}
+	}
+}

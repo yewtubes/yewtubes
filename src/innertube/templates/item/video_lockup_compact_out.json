@@ -51,7 +51,8 @@
 										}
 									}
 								}
-							]
+							],
+							"progressBar": "{{PROGRESS_BAR}}"
 						}
 					},
 					{}
