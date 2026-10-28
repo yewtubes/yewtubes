@@ -132,6 +132,32 @@ export async function getChannel(where: { id?: string; handle?: string }): Promi
 	return c as Channel | undefined;
 }
 
+const CHANNEL_COUNTS = sql`(select count(*)::int from subscriptions s where s.channel_id = c.id) as subscriber_count,
+	(select count(*)::int from videos v where v.channel_id = c.id and ${LISTED}) as video_count`;
+
+// channels in the order of `ids` (a Home featured-channels section), leaving
+// out any deleted or disabled since
+export async function channelsInOrder(ids: string[]): Promise<Channel[]> {
+	if (!ids.length) return [];
+	const rows = (await sql`select c.*, ${CHANNEL_COUNTS} from channels c join users u on u.id = c.user_id
+		where c.id = any(${textArray(ids)}::text[]) and u.disabled_at is null`) as Channel[];
+	const byId = new Map(rows.map((c) => [c.id, c]));
+	return ids.map((id) => byId.get(id)).filter((c): c is Channel => !!c);
+}
+
+// the channels a channel's account subscribes to, as its Home Subscriptions
+// section lists them: to others only while "Keep all my subscriptions
+// private" is off (setting 19, discoverable subscriptions), most subscribed
+// first
+export async function channelSubscriptions(c: Channel, viewer: Viewer, limit: number): Promise<Channel[]> {
+	if (viewer?.channelId !== c.id) {
+		const [pub] = await sql`select 1 from account_settings where user_id = ${c.user_id} and item = '19' and value = 'true'::jsonb`;
+		if (!pub) return [];
+	}
+	return (await sql`select * from (select c.*, ${CHANNEL_COUNTS} from subscriptions s join channels c on c.id = s.channel_id join users u on u.id = c.user_id
+		where s.user_id = ${c.user_id} and u.disabled_at is null) c order by subscriber_count desc, lower(title) limit ${limit}`) as Channel[];
+}
+
 export async function isSubscribed(viewer: Viewer, channelId: string): Promise<boolean> {
 	if (!viewer) return false;
 	const [r] = await sql`select 1 from subscriptions where user_id = ${viewer.userId} and channel_id = ${channelId}`;

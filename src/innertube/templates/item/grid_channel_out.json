@@ -1,0 +1,111 @@
+{
+	"gridChannelRenderer": {
+		"channelId": "{{CHANNEL_ID}}",
+		"thumbnail": {
+			"thumbnails": "{{AVATAR_88_176}}"
+		},
+		"videoCountText": {
+			"runs": [
+				{
+					"text": "{{VIDEO_COUNT}}"
+				},
+				{
+					"text": "{{VIDEO_COUNT_UNIT}}"
+				}
+			]
+		},
+		"subscriberCountText": {
+			"accessibility": {
+				"accessibilityData": {
+					"label": "{{SUBSCRIBERS_LABEL}}"
+				}
+			},
+			"simpleText": "{{SUBSCRIBERS}}"
+		},
+		"navigationEndpoint": {
+			"commandMetadata": {
+				"webCommandMetadata": {
+					"url": "{{CHANNEL_URL}}",
+					"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+					"rootVe": 3611,
+					"apiUrl": "/youtubei/v1/browse"
+				}
+			},
+			"browseEndpoint": {
+				"browseId": "{{CHANNEL_ID}}",
+				"canonicalBaseUrl": "{{CHANNEL_URL}}"
+			}
+		},
+		"title": {
+			"simpleText": "{{CHANNEL_NAME}}"
+		},
+		"subscribeButton": {
+			"buttonRenderer": {
+				"style": "STYLE_COMPACT_GRAY",
+				"size": "SIZE_DEFAULT",
+				"isDisabled": false,
+				"text": {
+					"runs": [
+						{
+							"text": "Subscribe"
+						}
+					]
+				},
+				"navigationEndpoint": {
+					"commandMetadata": {
+						"webCommandMetadata": {
+							"ignoreNavigation": true
+						}
+					},
+					"modalEndpoint": {
+						"modal": {
+							"modalWithTitleAndButtonRenderer": {
+								"title": {
+									"simpleText": "Want to subscribe to this channel?"
+								},
+								"content": {
+									"simpleText": "Sign in to subscribe to this channel."
+								},
+								"button": {
+									"buttonRenderer": {
+										"style": "STYLE_MONO_FILLED",
+										"size": "SIZE_DEFAULT",
+										"isDisabled": false,
+										"text": {
+											"simpleText": "Sign in"
+										},
+										"navigationEndpoint": {
+											"commandMetadata": {
+												"webCommandMetadata": {
+													"url": "{{SIGNIN_URL}}",
+													"webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+													"rootVe": 83769
+												}
+											},
+											"signInEndpoint": {
+												"nextEndpoint": {
+													"commandMetadata": {
+														"webCommandMetadata": {
+															"url": "{{CHANNEL_URL}}",
+															"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+															"rootVe": 3611,
+															"apiUrl": "/youtubei/v1/browse"
+														}
+													},
+													"browseEndpoint": {
+														"browseId": "{{CHANNEL_ID}}",
+														"canonicalBaseUrl": "{{CHANNEL_URL}}"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

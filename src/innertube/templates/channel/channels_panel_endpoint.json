@@ -1,0 +1,88 @@
+{
+	"showEngagementPanelEndpoint": {
+		"engagementPanel": {
+			"engagementPanelSectionListRenderer": {
+				"header": {
+					"engagementPanelTitleHeaderRenderer": {
+						"title": {
+							"simpleText": "{{SHELF_TITLE}}"
+						},
+						"visibilityButton": {
+							"buttonRenderer": {
+								"style": "STYLE_DEFAULT",
+								"size": "SIZE_DEFAULT",
+								"isDisabled": false,
+								"icon": {
+									"iconType": "CLOSE"
+								},
+								"accessibility": {
+									"label": "Close"
+								},
+								"accessibilityData": {
+									"accessibilityData": {
+										"label": "Close"
+									}
+								},
+								"command": {
+									"changeEngagementPanelVisibilityAction": {
+										"targetId": "{{PANEL_ID}}",
+										"visibility": "ENGAGEMENT_PANEL_VISIBILITY_HIDDEN"
+									}
+								}
+							}
+						}
+					}
+				},
+				"content": {
+					"sectionListRenderer": {
+						"contents": [
+							{
+								"itemSectionRenderer": {
+									"contents": [
+										{
+											"continuationItemRenderer": {
+												"trigger": "CONTINUATION_TRIGGER_ON_ITEM_SHOWN",
+												"continuationEndpoint": {
+													"commandMetadata": {
+														"webCommandMetadata": {
+															"sendPost": true,
+															"apiUrl": "/youtubei/v1/browse"
+														}
+													},
+													"continuationCommand": {
+														"token": "{{CONTINUATION}}",
+														"request": "CONTINUATION_REQUEST_TYPE_BROWSE"
+													}
+												}
+											}
+										}
+									],
+									"sectionIdentifier": "{{SECTION_ID}}",
+									"targetId": "{{SECTION_ID}}"
+								}
+							}
+						],
+						"scrollPaneStyle": {
+							"scrollable": true
+						}
+					}
+				},
+				"targetId": "{{PANEL_ID}}",
+				"identifier": {
+					"surface": "ENGAGEMENT_PANEL_SURFACE_BROWSE",
+					"tag": "{{PANEL_ID}}"
+				},
+				"size": "ENGAGEMENT_PANEL_SIZE_OPTIMIZED_FOR_CHANNELS"
+			}
+		},
+		"identifier": {
+			"surface": "ENGAGEMENT_PANEL_SURFACE_BROWSE",
+			"tag": "{{PANEL_ID}}"
+		},
+		"engagementPanelPresentationConfigs": {
+			"engagementPanelPopupPresentationConfig": {
+				"popupType": "PANEL_POPUP_TYPE_DIALOG"
+			}
+		}
+	}
+}

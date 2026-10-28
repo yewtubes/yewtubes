@@ -5,15 +5,15 @@
 
 import type { Viewer } from "../client/page";
 import { PUBLIC_ORIGIN } from "../config";
-import { channelVideos, getVideo, isSubscribed, markWatched } from "../data";
+import { channelSubscriptions, channelVideos, channelsInOrder, getVideo, isSubscribed, markWatched } from "../data";
 import { encodeToken } from "../ids";
 import { channelPlaylistLockups, getPlaylist, playlistVideos } from "./playlists";
 import { type ShelfDefinition, savedShelves } from "../home-layout";
 import { type Channel, type Video, dateText, grouped, urlEndpoint } from "./r";
 import { channelTabFromParams } from "./proto";
 import { make, tpl, fill, type Vars } from "./tpl";
-import { baseVars, channelVars, videoVars } from "./vars";
-import { subscribeAction } from "./subscribe";
+import { avatarSources, baseVars, channelVars, videoVars } from "./vars";
+import { channelRowButton, subscribeAction, subscribeEntities } from "./subscribe";
 import { shortLockup } from "./feeds";
 import { hasPosts, postsShelf, postsTab, scheduledPostsPath } from "./posts";
 
@@ -123,9 +123,70 @@ async function playlistShelf(viewer: Viewer, vars: Vars, id: string) {
 	return make("channel/playlist_shelf", { ...vars, PLAYLIST_ID: p.id, SHELF_TITLE: p.title, FIRST_VIDEO_ID: videos[0].id, ITEMS: videos.map((v) => make("item/video_lockup_shelf", { ...vars, ...videoVars(v) })) });
 }
 
-async function section(c: Channel, viewer: Viewer, vars: Vars, d: ShelfDefinition) {
+// a channel card (gridChannelRenderer): signed out its Subscribe asks to
+// sign in; signed in it is the channel row's subscribe button, with the
+// subscription state it reads from the response's entity mutations
+async function gridChannel(ch: Channel, viewer: Viewer, vars: Vars, mutations: unknown[]) {
+	const v: Vars = { ...vars, ...channelVars(ch), CHANNEL_URL: `/@${ch.handle}`, AVATAR_88_176: avatarSources(ch.id, [88, 176]), VIDEO_COUNT: grouped(ch.video_count), VIDEO_COUNT_UNIT: ch.video_count === 1 ? " video" : " videos" };
+	const item = make("item/grid_channel_out", v);
+	if (!viewer) return item;
+	if (viewer.channelId === ch.id) {
+		delete item.gridChannelRenderer.subscribeButton;
+		return item;
+	}
+	const subscribed = await isSubscribed(viewer, ch.id);
+	item.gridChannelRenderer.subscribeButton = await channelRowButton(ch, v, subscribed);
+	mutations.push(...(await subscribeEntities(ch, viewer, v, subscribed)));
+	return item;
+}
+
+// the channels of a Home section: Studio's Featured channels in the order
+// chosen, or the account's own subscriptions
+type ChannelsSection = { title: string; ids?: string[] };
+function channelsSection(d: ShelfDefinition | undefined): ChannelsSection | undefined {
+	if (d && "channelCollectionShelfDefinition" in d && d.channelCollectionShelfDefinition.type === "SHELF_TYPE_SELECTED_CHANNELS") return { title: d.channelCollectionShelfDefinition.title || "Featured channels", ids: d.channelCollectionShelfDefinition.channelIds };
+	if (d && "predefinedShelfDefinition" in d && d.predefinedShelfDefinition.type === "SHELF_TYPE_SUBSCRIPTIONS") return { title: "Subscriptions" };
+	return undefined;
+}
+const sectionChannels = (c: Channel, viewer: Viewer, s: ChannelsSection, limit: number) => (s.ids ? channelsInOrder(s.ids.slice(0, limit)) : channelSubscriptions(c, viewer, limit));
+
+// the dialog the shelf's title, the shelf and View all open (each its own
+// panel, as YouTube sends them), filled by a browse continuation
+function channelsPanelEndpoint(c: Channel, s: ChannelsSection, index: number, copy: number) {
+	const id = `${c.id}-channels-${index}-${copy}`;
+	return make("channel/channels_panel_endpoint", { SHELF_TITLE: s.title, PANEL_ID: id, SECTION_ID: `${id}-list`, CONTINUATION: encodeToken({ k: "chchannels", c: c.id, i: index, t: `${id}-list` }) });
+}
+
+// YouTube's featured-channels shelf (FGTeeV's "Subscribe!"): up to 12
+// channel cards
+async function channelsShelf(c: Channel, viewer: Viewer, vars: Vars, s: ChannelsSection, index: number, mutations: unknown[]) {
+	const channels = await sectionChannels(c, viewer, s, 12);
+	if (!channels.length) return undefined;
+	return make("channel/channels_shelf", {
+		SHELF_TITLE: s.title,
+		PANEL_ENDPOINT: channelsPanelEndpoint(c, s, index, 0),
+		PANEL_ENDPOINT_ALL: channelsPanelEndpoint(c, s, index, 1),
+		ITEMS: await Promise.all(channels.map((ch) => gridChannel(ch, viewer, vars, mutations))),
+	});
+}
+
+// the dialog's list: every channel of the section in a grid
+export async function channelsPanel(c: Channel, viewer: Viewer, index: number, target: string) {
+	const s = channelsSection(savedShelves(c.home_shelves)?.[index]);
+	const vars = { ...baseVars(viewer, `/@${c.handle}`), ...channelVars(c) };
+	const mutations: unknown[] = [];
+	const channels = s ? await sectionChannels(c, viewer, s, 100) : [];
+	const r = make("channel/channels_panel", { ITEMS: await Promise.all(channels.map((ch) => gridChannel(ch, viewer, vars, mutations))), GRID_ID: `${target}-grid`, SECTION_ID: target });
+	return { ...r, ...entityUpdates(mutations) };
+}
+
+const entityUpdates = (mutations: unknown[]) => (mutations.length ? { frameworkUpdates: { entityBatchUpdate: { mutations, timestamp: { seconds: String(Math.floor(Date.now() / 1000)), nanos: 0 } } } } : {});
+
+async function section(c: Channel, viewer: Viewer, vars: Vars, d: ShelfDefinition, index: number, mutations: unknown[]) {
 	if ("playlistShelfDefinition" in d) return playlistShelf(viewer, vars, d.playlistShelfDefinition.playlistId);
 	if ("playlistCollectionShelfDefinition" in d) return playlistsShelf(c, viewer, vars, d.playlistCollectionShelfDefinition.title, d.playlistCollectionShelfDefinition.playlistIds);
+	const channels = channelsSection(d);
+	if (channels) return channelsShelf(c, viewer, vars, channels, index, mutations);
 	if (!("predefinedShelfDefinition" in d)) return undefined;
 	const { type, forYouShelfInfo } = d.predefinedShelfDefinition;
 	if (type === "SHELF_TYPE_FOR_YOU") return forYouShelf(c, viewer, vars, forYouShelfInfo ?? {});
@@ -134,14 +195,14 @@ async function section(c: Channel, viewer: Viewer, vars: Vars, d: ShelfDefinitio
 	if (type === "SHELF_TYPE_SHORT_MOBILE_VIDEOS_UPLOADS") return shortsShelf(c, viewer);
 	if (type === "SHELF_TYPE_CREATED_PLAYLISTS") return playlistsShelf(c, viewer, vars, "Created playlists");
 	if (type === "SHELF_TYPE_RECENT_POSTS") return postsShelf(c, viewer, vars);
-	// live streams, collaborations, clips: the instance has none yet
+	// live streams, collaborations, clips, shows: the instance has none yet
 	return undefined;
 }
 
-async function homeTab(c: Channel, viewer: Viewer, vars: Vars) {
+async function homeTab(c: Channel, viewer: Viewer, vars: Vars, mutations: unknown[]) {
 	const saved = savedShelves(c.home_shelves);
 	const sections = [await spotlight(c, viewer, vars)];
-	if (saved) for (const d of saved) sections.push(await section(c, viewer, vars, d));
+	if (saved) for (const [i, d] of saved.entries()) sections.push(await section(c, viewer, vars, d, i, mutations));
 	// the default layout: newest videos, popular ones once there are a few,
 	// then YouTube's Shorts shelf
 	else sections.push(await videoShelf(c, viewer, vars, "Videos", "newest"), c.video_count > 4 ? await videoShelf(c, viewer, vars, "Popular videos", "popular") : undefined, await shortsShelf(c, viewer), await postsShelf(c, viewer, vars));
@@ -192,11 +253,12 @@ export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, p
 	const vars = { ...baseVars(viewer, path), ...channelVars(c) };
 	const page = make("channel/page", vars);
 	let content: unknown;
+	const shelfMutations: unknown[] = [];
 	if (tab === "videos") content = { richGridRenderer: make("channel/videos_grid", { ...vars, ...sortVars(c, "newest", "videos"), ITEMS: await videoGridItems(c, viewer, 0, "newest") }) };
 	else if (tab === "shorts") content = { richGridRenderer: make("channel/shorts_grid", { ...sortVars(c, "newest", "shorts"), ITEMS: await videoGridItems(c, viewer, 0, "newest", "shorts") }) };
 	else if (tab === "playlists") content = await playlistsTab(c, viewer, vars);
 	else if (tab === "posts") content = await postsTab(c, viewer, { openComposer: posts.openComposer, scheduled });
-	else content = await homeTab(c, viewer, vars);
+	else content = await homeTab(c, viewer, vars, shelfMutations);
 	// YouTube lists only the tabs a channel has content for
 	const show: string[] = [...(available.includes(tab) ? available : [tab, ...available]), "search"];
 	const tabs = show.map((name) => {
@@ -212,7 +274,7 @@ export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, p
 			header,
 			metadata: page.metadata,
 			microformat: page.microformat,
-			...(mutations.length ? { frameworkUpdates: { entityBatchUpdate: { mutations, timestamp: { seconds: String(Math.floor(Date.now() / 1000)), nanos: 0 } } } } : {}),
+			...entityUpdates([...mutations, ...shelfMutations]),
 		},
 	};
 }

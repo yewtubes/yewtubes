@@ -1875,6 +1875,61 @@ function library() {
 }
 
 // ======================================================================
+// a channel's Home: a featured-channels shelf (FGTeeV's "Subscribe!") of
+// gridChannelRenderers; its title and View all open a dialog panel whose
+// browse continuation returns the whole list as a gridRenderer (signed out;
+// signed in, channel.ts swaps each item's sign-in button for the
+// subscribeButtonRenderer of item/subscribe_button_renderer)
+function featuredChannels() {
+	const page = pageVar(body("fgteev-featured", /^001-/));
+	const sections = page.contents.twoColumnBrowseResultsRenderer.tabs.find((t: any) => t.tabRenderer?.selected).tabRenderer.content.sectionListRenderer.contents;
+	const section = clean(structuredClone(sections.find((s: any) => find(find(s, "shelfRenderer") ?? {}, "gridChannelRenderer"))));
+	const shelf = find(section, "shelfRenderer");
+	const title = contentOf(shelf.title);
+	const handle: string = find(page.metadata, "vanityChannelUrl")?.split("/").pop() ?? "";
+	const owner: string = page.metadata.channelMetadataRenderer.externalId;
+	const item = structuredClone(shelf.content.horizontalListRenderer.items[0]);
+	const gc = item.gridChannelRenderer;
+	const cid: string = gc.channelId;
+	const url: string = gc.navigationEndpoint.browseEndpoint.canonicalBaseUrl;
+	delete gc.ownerBadges;
+	wholeToken(gc, "thumbnails", "AVATAR_88_176");
+	gc.videoCountText = { runs: [{ text: "{{VIDEO_COUNT}}" }, { text: "{{VIDEO_COUNT_UNIT}}" }] };
+	gc.subscriberCountText = { accessibility: { accessibilityData: { label: "{{SUBSCRIBERS_LABEL}}" } }, simpleText: "{{SUBSCRIBERS}}" };
+	gc.title = { simpleText: "{{CHANNEL_NAME}}" };
+	const signIn = find(gc, "signInEndpoint");
+	delete signIn.continueAction;
+	delete signIn.idamTag;
+	save("item/grid_channel_out", tokenize(item, [[cid, "CHANNEL_ID"], [url, "CHANNEL_URL"]], [[cid, "CHANNEL_ID"]]), [cid, url]);
+
+	// the panel the title, the shelf and View all open: one endpoint, three
+	// copies with their own target ids
+	const ep = shelf.endpoint;
+	const panel = ep.showEngagementPanelEndpoint.engagementPanel.engagementPanelSectionListRenderer;
+	const panelId: string = panel.targetId;
+	const isr = panel.content.sectionListRenderer.contents[0].itemSectionRenderer;
+	const sectionId: string = isr.targetId;
+	const token: string = find(isr, "continuationCommand").token;
+	panel.header.engagementPanelTitleHeaderRenderer.title.simpleText = "{{SHELF_TITLE}}";
+	save("channel/channels_panel_endpoint", tokenize(ep, [[panelId, "PANEL_ID"], [sectionId, "SECTION_ID"], [token, "CONTINUATION"]]), [panelId, sectionId, token, owner]);
+	shelf.title = { runs: [{ text: "{{SHELF_TITLE}}", navigationEndpoint: "{{PANEL_ENDPOINT}}" }] };
+	shelf.endpoint = "{{PANEL_ENDPOINT}}";
+	find(shelf.menu, "buttonRenderer").navigationEndpoint = "{{PANEL_ENDPOINT_ALL}}";
+	shelf.content.horizontalListRenderer.items = "{{ITEMS}}";
+	save("channel/channels_shelf", tokenize(section, []), [title, cid, owner, handle].filter(Boolean));
+
+	// the panel's continuation: every channel of the shelf in a grid
+	const [[, resp]] = bodies("fgteev-featured", /browse\.resp$/);
+	const action = clean(resp).onResponseReceivedEndpoints[0];
+	const append = action.appendContinuationItemsAction;
+	const grid = append.continuationItems[0].gridRenderer;
+	const gridId: string = grid.targetId;
+	const appendId: string = append.targetId;
+	grid.items = "{{ITEMS}}";
+	save("channel/channels_panel", tokenize({ onResponseReceivedEndpoints: [action] }, [[gridId, "GRID_ID"], [appendId, "SECTION_ID"]]), [gridId, appendId, cid]);
+}
+
+// ======================================================================
 // the Save sheet (get_panel PAadd_to_playlist): one toggle row per playlist
 // and New playlist in the footer
 function saveSheet() {
@@ -2612,6 +2667,7 @@ const steps: [string, () => void][] = [
 	["switcher", accountSwitcher],
 	["studio-menu", studioMenu],
 	["shorts", shorts],
+	["featured-channels", featuredChannels],
 ];
 for (const [name, fn] of steps) {
 	if (only.length && !only.includes(name)) continue;

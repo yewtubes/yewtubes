@@ -16,7 +16,7 @@ import { playlistBrowse } from "./playlists";
 import { type Channel, browseEndpoint, responseContext, runs } from "./r";
 import { ApiError, route } from "./router";
 import { recordMiss } from "../diagnostics";
-import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelTab, tabParams, videoGridItems, videoGridReload } from "./channel";
+import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelsPanel, channelTab, tabParams, videoGridItems, videoGridReload } from "./channel";
 import { SETTINGS_PAGES, SETTINGS_PATHS, settingsPage } from "./settings";
 import { signInUrl } from "./vars";
 import { CREATE_POST_PARAMS } from "./post-composer";
@@ -105,7 +105,7 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 const homeFilter = (f: unknown): HomeFilter => (f === "recent" || f === "watched" || f === "new" ? f : "all");
 
 async function continuation(token: string, viewer: Viewer) {
-	const t = decodeToken<{ k: string; o: number; c?: string; s?: ChannelSort; reload?: boolean; p?: string; q?: string; f?: string; v?: string }>(token);
+	const t = decodeToken<{ k: string; o: number; c?: string; s?: ChannelSort; reload?: boolean; p?: string; q?: string; f?: string; v?: string; i?: number; t?: string }>(token);
 	if (!t) throw new ApiError(400, "Invalid continuation");
 	let items: unknown[] = [];
 	let target = "";
@@ -118,10 +118,11 @@ async function continuation(token: string, viewer: Viewer) {
 		if (!viewer) throw new ApiError(401, "Sign in to do this.", "authError");
 		return t.k === "plfeed" ? playlistsReload(viewer, { k: "plfeed", s: Number(t.s) || 0, f: t.f }) : channelsReload(viewer, Number(t.s) || 0);
 	}
-	else if ((t.k === "chvideos" || t.k === "about") && t.c) {
+	else if ((t.k === "chvideos" || t.k === "about" || t.k === "chchannels") && t.c) {
 		const c = await getChannel({ id: t.c });
 		if (!c) throw new ApiError(404, "Not found");
 		if (t.k === "about") return { responseContext: responseContext(viewer), ...(await aboutPanel(c, viewer)) };
+		if (t.k === "chchannels") return { responseContext: responseContext(viewer), ...(await channelsPanel(c, viewer, Number(t.i) || 0, String(t.t ?? ""))) };
 		const kind = t.f === "shorts" ? "shorts" : "videos";
 		if (t.reload) return { responseContext: responseContext(viewer), ...(await videoGridReload(c, viewer, t.s ?? "newest", kind)) };
 		items = await videoGridItems(c, viewer, t.o, t.s ?? "newest", kind);
