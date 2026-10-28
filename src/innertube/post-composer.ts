@@ -24,9 +24,11 @@ import { decodeToken, encodeToken, isVideoId, newPostId, randomId } from "../ids
 import { imageSize } from "../media/image-size";
 import { rateLimit } from "../ratelimit";
 import { imageTransfer } from "../studio/scotty";
-import { type Attachment, getPost, postRenderer, postThread } from "./posts";
+import { type Attachment, getPost, isScheduled, postRenderer, postThread, scheduledPostsPath, scheduledText } from "./posts";
 import { type Channel, type Video, avatarThumbnails, responseContext, runs, serviceEndpoint } from "./r";
 import { ApiError, route } from "./router";
+import { tabParams } from "./channel";
+import { withScheduledPosts } from "./proto";
 import { videoRendererVars } from "./search";
 import { make } from "./tpl";
 
@@ -114,6 +116,77 @@ const pollEditor = (limits: { min: number; max: number; chars: number }, placeho
 	addOptionButton: button(addText, { style: "STYLE_SUGGESTIVE", size: "SIZE_SMALL", icon: "ADD" }),
 });
 
+// ---- scheduling ----
+
+// how far ahead a post can be scheduled (the date picker's calendar runs two years)
+const SCHEDULE_DAYS = 730;
+// the time zones the schedule panel offers after the viewer's own, each
+// with its current offset
+const ZONES = [
+	"Pacific/Honolulu", "America/Anchorage", "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York", "America/Halifax", "America/Sao_Paulo",
+	"Atlantic/Azores", "Europe/London", "Europe/Paris", "Europe/Athens", "Africa/Johannesburg", "Europe/Moscow", "Asia/Dubai", "Asia/Karachi", "Asia/Kolkata",
+	"Asia/Dhaka", "Asia/Bangkok", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney", "Pacific/Auckland",
+];
+function zoneOffsetSec(zone: string, at: Date): number {
+	const part = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" }).formatToParts(at).find((p) => p.type === "timeZoneName")?.value ?? "GMT";
+	const m = /GMT([+-])(\d{2}):(\d{2})/.exec(part);
+	return m ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 3600 + Number(m[3]) * 60) : 0;
+}
+function timezoneOptions() {
+	const now = new Date();
+	return ZONES.map((name) => {
+		const sec = zoneOffsetSec(name, now);
+		const abs = Math.abs(sec);
+		const offset = `GMT${sec < 0 ? "-" : "+"}${String(Math.floor(abs / 3600)).padStart(2, "0")}:${String((abs % 3600) / 60).padStart(2, "0")}`;
+		return { name, localizedName: name.split("/").pop()!.replace(/_/g, " "), localizedUtcOffset: offset, utcOffsetSec: String(sec) };
+	}).sort((a, b) => Number(a.utcOffsetSec) - Number(b.utcOffsetSec));
+}
+// the date, time and time zone panel; in the edit dialog it starts at the post's time
+const dateTimePicker = (at?: Date) => ({
+	dateTimePickerRenderer: {
+		header: runs("Schedule post"),
+		...(at ? { defaultTimeSec: String(Math.floor(at.getTime() / 1000)) } : {}),
+		timezoneOptions: timezoneOptions(),
+		...(at ? {} : { dismissButton: button("", { icon: "CLOSE", tooltip: "Cancel scheduling" }) }),
+	},
+});
+// the menu by the Post button: "Schedule post" opens the panel and makes the button Schedule
+const postOptionsMenu = () => ({
+	menuRenderer: {
+		items: [
+			{
+				menuServiceItemRenderer: {
+					text: runs("Schedule post"),
+					icon: { iconType: "SCHEDULE" },
+					serviceEndpoint: clientAction({ showSchedulingPanelCommand: { scheduleButton: button("Schedule", { style: "STYLE_PRIMARY" }), dateTimePicker: dateTimePicker() } }).serviceEndpoint,
+				},
+			},
+		],
+		accessibility: { accessibilityData: { label: "More options" } },
+	},
+});
+
+// a requested publish time: a string is the message the composer shows
+function scheduleTime(v: unknown): Date | string | undefined {
+	if (v === undefined || v === null || v === "") return undefined;
+	const sec = Number(v);
+	if (!Number.isFinite(sec)) return "Choose a date and time to schedule your post.";
+	if (sec * 1000 <= Date.now() + 60_000) return "Choose a time in the future.";
+	if (sec * 1000 > Date.now() + SCHEDULE_DAYS * 86_400_000) return "Posts can be scheduled up to 2 years ahead.";
+	return new Date(sec * 1000);
+}
+const scheduledToast = (c: Channel, at: Date) => ({
+	openPopupAction: {
+		popupType: "TOAST",
+		popup: {
+			notificationActionRenderer: {
+				responseText: runs(`Post ${scheduledText(at).replace(/^S/, "s")}`),
+				actionButton: button("View", { style: "STYLE_BLUE_TEXT" }, { navigationEndpoint: { commandMetadata: { webCommandMetadata: { url: scheduledPostsPath(c), webPageType: "WEB_PAGE_TYPE_CHANNEL", rootVe: 3611, apiUrl: "/youtubei/v1/browse" } }, browseEndpoint: { browseId: c.id, params: withScheduledPosts(tabParams("posts")), canonicalBaseUrl: `/@${c.handle}` } } }),
+			},
+		},
+	},
+});
+
 // the create dialog for the viewer's own channel
 export function composer(c: Channel, viewer: NonNullable<Viewer>) {
 	const avatar = avatarThumbnails(c.id, [40, 88]);
@@ -174,6 +247,7 @@ export function composer(c: Channel, viewer: NonNullable<Viewer>) {
 				removeOptionButtonA11yText: { accessibilityData: { label: "Remove answer" } },
 			},
 			attachmentDismissButton: button("", { icon: "CLOSE", tooltip: "Remove" }),
+			postOptionsMenu: postOptionsMenu(),
 			errorMessage: runs("Your post couldn't be published. Try again."),
 			charLimit: POST_TEXT_LIMIT,
 		},
@@ -182,7 +256,7 @@ export function composer(c: Channel, viewer: NonNullable<Viewer>) {
 
 // the edit dialog of a post's Edit menu item: the text only (YouTube keeps a
 // post's attachment as it is; polls and quizzes show their text read-only)
-export function editDialog(c: Channel, viewer: NonNullable<Viewer>, post: { id: string; text: string }, attachment: unknown) {
+export function editDialog(c: Channel, viewer: NonNullable<Viewer>, post: { id: string; text: string; published_at: Date }, attachment: unknown) {
 	return {
 		backstagePostDialogRenderer: {
 			purpose: "BACKSTAGE_POST_DIALOG_PURPOSE_EDIT",
@@ -191,6 +265,8 @@ export function editDialog(c: Channel, viewer: NonNullable<Viewer>, post: { id: 
 			editableText: runs(post.text),
 			placeholderText: runs("Share a sneak peek of your next video"),
 			...(attachment ? { backstageAttachment: attachment } : {}),
+			// a scheduled post's time can still change
+			...(isScheduled(post) ? { schedulingDateTimePicker: dateTimePicker(new Date(post.published_at)) } : {}),
 			submitButton: button("Save", { style: "STYLE_PRIMARY" }, { serviceEndpoint: serviceEndpoint("/youtubei/v1/backstage/update_post", { updateBackstagePostEndpoint: { updateBackstagePostParams: encodeToken({ k: "upost", u: viewer.userId, po: post.id }) } }) }),
 			cancelButton: button("Cancel", { style: "STYLE_TEXT" }),
 			errorMessage: runs("Your post couldn't be saved. Try again."),
@@ -303,7 +379,8 @@ route(
 		if (!c) throw new ApiError(404, "Not found");
 		const text = str(body.commentText).trim();
 		if ([...text].length > POST_TEXT_LIMIT) return failure(viewer, "Your post is too long.");
-		if (body.scheduledPublishTimeSec) return failure(viewer, "Scheduled posts aren't available on this instance.");
+		const at = scheduleTime(body.scheduledPublishTimeSec);
+		if (typeof at === "string") return failure(viewer, at);
 		const read = await readAttachment(body, viewer);
 		if (typeof read === "string") return failure(viewer, read);
 		if (!text && !read.attachment) return failure(viewer, "Write something or add an attachment.");
@@ -313,7 +390,9 @@ route(
 			mkdirSync(postMediaDir(id), { recursive: true });
 			for (const img of read.images) renameSync(join(PENDING, img.f), join(postMediaDir(id), img.f));
 		}
-		await sql`insert into posts (id, channel_id, text, attachment) values (${id}, ${c.id}, ${text}, ${read.attachment ? JSON.stringify(read.attachment) : null}::text::jsonb)`;
+		await sql`insert into posts (id, channel_id, text, attachment, published_at) values (${id}, ${c.id}, ${text}, ${read.attachment ? JSON.stringify(read.attachment) : null}::text::jsonb, ${at ?? new Date()})`;
+		// a scheduled post waits in the Scheduled section; the composer just clears
+		if (at) return { responseContext: responseContext(viewer), actions: [scheduledToast(c, at)] };
 		const post = await getPost(id, viewer);
 		const thread = await postThread(post!, c, viewer);
 		return { responseContext: responseContext(viewer), actions: [{ addBackstagePostAction: { renderer: thread } }] };
@@ -335,6 +414,12 @@ route(
 			if ([...text].length > POST_TEXT_LIMIT) return failure(viewer, "Your post is too long.");
 			if (!text && !post.attachment) return failure(viewer, "Write something or add an attachment.");
 			if (text !== post.text) await sql`update posts set text = ${text}, edited_at = now() where id = ${post.id}`;
+		}
+		if (body.scheduledPublishTimeSec !== undefined) {
+			if (!isScheduled(post)) return failure(viewer, "This post is already published.");
+			const at = scheduleTime(body.scheduledPublishTimeSec);
+			if (typeof at === "string") return failure(viewer, at);
+			if (at) await sql`update posts set published_at = ${at} where id = ${post.id} and published_at > now()`;
 		}
 		const updated = await getPost(post.id, viewer);
 		return { responseContext: responseContext(viewer), actions: [{ replaceBackstagePostAction: { itemId: post.id, renderer: await postRenderer(updated!, c, viewer) } }] };

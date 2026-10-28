@@ -16,7 +16,7 @@ import { make, type Vars } from "./tpl";
 import { baseVars, channelVars } from "./vars";
 import { descriptionRuns, tabParams } from "./channel";
 import { videoRendererVars } from "./search";
-import { encode } from "./proto";
+import { encode, withScheduledPosts } from "./proto";
 import { composer, editDialog } from "./post-composer";
 
 export const POSTS_PAGE = 10;
@@ -36,6 +36,8 @@ export type Post = {
 	like_count: number;
 	comment_count: number;
 	created_at: Date;
+	// when it goes up: later than now for a scheduled post
+	published_at: Date;
 	edited_at: Date | null;
 	// the viewer's reaction
 	reaction: "like" | "dislike" | null;
@@ -43,11 +45,17 @@ export type Post = {
 
 const io = (viewer: Viewer) => (viewer ? "in" : "out");
 
-async function loadPosts(where: { channel?: string; id?: string }, viewer: Viewer, offset = 0, limit = POSTS_PAGE): Promise<Post[]> {
-	return (await sql`select p.id, p.channel_id, p.text, p.attachment, p.like_count, p.comment_count, p.created_at, p.edited_at,
+// a channel's published posts, newest first, or its scheduled ones (only
+// for the channel itself), soonest first; a post by id is there for everyone
+// once published and for its channel before
+export type PostsView = "published" | "scheduled";
+async function loadPosts(where: { channel?: string; id?: string }, viewer: Viewer, offset = 0, limit = POSTS_PAGE, view: PostsView = "published"): Promise<Post[]> {
+	const own = viewer?.channelId ?? "";
+	const shown = where.id ? sql`(p.published_at <= now() or p.channel_id = ${own})` : view === "scheduled" ? sql`p.published_at > now() and p.channel_id = ${own}` : sql`p.published_at <= now()`;
+	return (await sql`select p.id, p.channel_id, p.text, p.attachment, p.like_count, p.comment_count, p.created_at, p.published_at, p.edited_at,
 		(select kind from post_reactions r where r.post_id = p.id and r.user_id = ${viewer?.userId ?? "0"}) as reaction
-		from posts p where p.deleted_at is null and ${where.id ? sql`p.id = ${where.id}` : sql`p.channel_id = ${where.channel ?? ""}`}
-		order by p.created_at desc, p.id limit ${limit} offset ${offset}`) as Post[];
+		from posts p where p.deleted_at is null and ${where.id ? sql`p.id = ${where.id}` : sql`p.channel_id = ${where.channel ?? ""}`} and ${shown}
+		order by ${view === "scheduled" ? sql`p.published_at asc` : sql`p.published_at desc`}, p.id limit ${limit} offset ${offset}`) as Post[];
 }
 
 export async function getPost(id: string, viewer: Viewer): Promise<Post | undefined> {
@@ -55,7 +63,12 @@ export async function getPost(id: string, viewer: Viewer): Promise<Post | undefi
 	return (await loadPosts({ id }, viewer))[0];
 }
 
-export const hasPosts = async (channelId: string) => (await sql`select 1 from posts where channel_id = ${channelId} and deleted_at is null limit 1`).length > 0;
+export const isScheduled = (p: Pick<Post, "published_at">) => new Date(p.published_at).getTime() > Date.now();
+export const hasPosts = async (channelId: string) => (await sql`select 1 from posts where channel_id = ${channelId} and deleted_at is null and published_at <= now() limit 1`).length > 0;
+const hasScheduled = async (channelId: string) => (await sql`select 1 from posts where channel_id = ${channelId} and deleted_at is null and published_at > now() limit 1`).length > 0;
+
+// when a scheduled post goes up, as its channel sees it on the Scheduled section
+export const scheduledText = (d: Date) => `Scheduled for ${new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })} UTC`;
 
 // a post's images, served by this instance (instance.ts, as post-composer.ts stored them)
 export const postImageUrl = (postId: string, file: string, size = 640) => `${PUBLIC_ORIGIN}/ggpht/post/${postId}/${file}=s${size}`;
@@ -174,7 +187,7 @@ async function postVars(p: Post, c: Channel, viewer: Viewer): Promise<Vars> {
 		POST_ID: p.id,
 		CONTENT: runs(...descriptionRuns(p.text)),
 		AUTHOR_THUMBS: avatarThumbnails(c.id, [32, 48, 76]).thumbnails,
-		PUBLISHED: `${ago(p.created_at)}${p.edited_at ? " (edited)" : ""}`,
+		PUBLISHED: isScheduled(p) ? scheduledText(p.published_at) : `${ago(p.published_at)}${p.edited_at ? " (edited)" : ""}`,
 		VOTE: voteCount(p.like_count),
 		VOTE_STATUS: p.reaction === "like" ? "LIKE" : p.reaction === "dislike" ? "DISLIKE" : "INDIFFERENT",
 		LIKE_A11Y: `Like this post along with ${grouped(others)} other ${others === 1 ? "person" : "people"}`,
@@ -222,6 +235,8 @@ export async function postThread(p: Post, c: Channel, viewer: Viewer, onPage = f
 	const vars = await postVars(p, c, viewer);
 	const item = make(`item/post_thread_${io(viewer)}`, vars);
 	trim(item.backstagePostThreadRenderer.post.backstagePostRenderer, p, vars, onPage);
+	// nothing to like or comment on until it goes up
+	if (isScheduled(p)) delete item.backstagePostThreadRenderer.post.backstagePostRenderer.actionButtons;
 	return item;
 }
 
@@ -246,31 +261,56 @@ export async function postsShelf(c: Channel, viewer: Viewer, vars: Vars) {
 }
 
 // the Posts tab's threads, with a continuation while there are more
-export async function postItems(c: Channel, viewer: Viewer, offset = 0) {
-	const posts = await loadPosts({ channel: c.id }, viewer, offset);
+export async function postItems(c: Channel, viewer: Viewer, offset = 0, view: PostsView = "published") {
+	const posts = await loadPosts({ channel: c.id }, viewer, offset, POSTS_PAGE, view);
 	const items: unknown[] = [];
 	for (const p of posts) items.push(await postThread(p, c, viewer));
-	if (posts.length === POSTS_PAGE) items.push(make("item/continuation", { CONTINUATION: encodeToken({ k: "posts", c: c.id, o: offset + POSTS_PAGE }) }));
+	if (posts.length === POSTS_PAGE) items.push(make("item/continuation", { CONTINUATION: encodeToken({ k: "posts", c: c.id, o: offset + POSTS_PAGE, ...(view === "scheduled" ? { v: "scheduled" } : {}) }) }));
 	return items;
 }
 
+// the sections of the owner's Posts tab once something is scheduled (YouTube
+// Help: scheduled posts are in "the Scheduled section of the Posts tab"),
+// as chips that open each
+export const scheduledPostsPath = (c: Channel) => `/@${c.handle}/posts?view=scheduled`;
+function sectionChips(c: Channel, view: PostsView) {
+	const chip = (text: string, selected: boolean, url: string, params: string) => ({
+		chipCloudChipRenderer: {
+			text: { simpleText: text },
+			isSelected: selected,
+			navigationEndpoint: { commandMetadata: { webCommandMetadata: { url, webPageType: "WEB_PAGE_TYPE_CHANNEL", rootVe: 3611, apiUrl: "/youtubei/v1/browse" } }, browseEndpoint: { browseId: c.id, params, canonicalBaseUrl: `/@${c.handle}` } },
+			accessibilityData: { accessibilityData: { label: text } },
+		},
+	});
+	const params = tabParams("posts");
+	return {
+		feedFilterChipBarRenderer: {
+			contents: [chip("Published", view === "published", `/@${c.handle}/posts`, params), chip("Scheduled", view === "scheduled", scheduledPostsPath(c), withScheduledPosts(params))],
+			styleType: "FEED_FILTER_CHIP_BAR_STYLE_TYPE_CHANNEL_PAGE_GRID",
+		},
+	};
+}
+
 // the Posts tab; the owner's starts with the composer, opened by itself when
-// the Create menu's "Create post" led here
-export async function postsTab(c: Channel, viewer: Viewer, openComposer = false) {
-	const tab = make("channel/posts_sections", { ITEMS: await postItems(c, viewer) });
-	if (viewer?.channelId === c.id) {
+// the Create menu's "Create post" led here, and has the Scheduled section
+export async function postsTab(c: Channel, viewer: Viewer, opts: { openComposer?: boolean; scheduled?: boolean } = {}) {
+	const owner = viewer?.channelId === c.id;
+	const view: PostsView = owner && opts.scheduled ? "scheduled" : "published";
+	const tab = make("channel/posts_sections", { ITEMS: await postItems(c, viewer, 0, view) });
+	if (owner) {
 		const header = tab.contents[0].itemSectionRenderer.header.commentsHeaderRenderer;
 		header.createRenderer = composer(c, viewer);
-		header.shouldShowBackstagePostOptimistically = true;
-		if (openComposer) header.actions = [{ createBackstagePostDialogEndpoint: { dialog: composer(c, viewer) } }];
+		header.shouldShowBackstagePostOptimistically = view === "published";
+		if (opts.openComposer) header.actions = [{ createBackstagePostDialogEndpoint: { dialog: composer(c, viewer) } }];
+		if (view === "scheduled" || (await hasScheduled(c.id))) tab.header = sectionChips(c, view);
 	}
 	return { sectionListRenderer: tab };
 }
 
-export async function postsContinuation(channelId: string, offset: number, viewer: Viewer) {
+export async function postsContinuation(channelId: string, offset: number, viewer: Viewer, view: PostsView = "published") {
 	const c = await getChannel({ id: channelId });
 	if (!c) throw new ApiError(404, "Not found");
-	return { responseContext: responseContext(viewer), onResponseReceivedEndpoints: [{ appendContinuationItemsAction: { continuationItems: await postItems(c, viewer, offset), targetId: "backstage-item-section" } }] };
+	return { responseContext: responseContext(viewer), onResponseReceivedEndpoints: [{ appendContinuationItemsAction: { continuationItems: await postItems(c, viewer, offset, view), targetId: "backstage-item-section" } }] };
 }
 
 // FEpost_detail params as YouTube's post links carry them: {56: {2: channel,
@@ -307,7 +347,7 @@ export async function postPage(id: string, viewer: Viewer) {
 		COMMENTS_TOKEN: encodeToken({ k: "comments", po: p.id, s: "top" }),
 		TEXT: p.text,
 		TEXT_SHORT: short || `Post by ${c.title}`,
-		PUBLISH_DATE: new Date(p.created_at).toISOString(),
+		PUBLISH_DATE: new Date(p.published_at).toISOString(),
 		LIKE_COUNT: String(p.like_count),
 	});
 	return { channel: c, post: p, response: { contents: { twoColumnBrowseResultsRenderer: { tabs: page.tabs } }, metadata: page.metadata, microformat: page.microformat } };

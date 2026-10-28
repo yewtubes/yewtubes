@@ -66,9 +66,9 @@ const PLACEHOLDER_AVATAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 // a channel's picture or banner. The URLs don't change when the channel
 // changes its picture (Studio's Customization), so browsers revalidate;
 // "avatar-default" is the letter picture a channel has without one of its own
-async function ggpht(req: Request, url: URL): Promise<Response> {
+async function ggpht(req: Request, url: URL, viewer: Viewer): Promise<Response> {
 	const post = /^\/ggpht\/post\/(Ugkx[A-Za-z0-9_-]{32})\/([\w-]{16}\.(?:jpg|png|gif|webp))(?:=[\w-]*)?$/.exec(url.pathname);
-	if (post) return postImage(post[1], post[2]);
+	if (post) return postImage(post[1], post[2], viewer);
 	const m = /^\/ggpht\/(UC[A-Za-z0-9_-]{22})\/(avatar-default|avatar|banner)/.exec(url.pathname);
 	if (!m) return new Response("not found", { status: 404 });
 	const [c] = await sql`select title, avatar_path, banner_path from channels where id = ${m[1]}`;
@@ -83,12 +83,13 @@ async function ggpht(req: Request, url: URL): Promise<Response> {
 	return new Response(avatarSvg(m[1], [...c.title][0] ?? "?"), { headers: { ...headers, "content-type": "image/svg+xml" } });
 }
 
-// a post's image (post-composer.ts stores them under the post), for as long as the post is up
-async function postImage(postId: string, file: string): Promise<Response> {
-	const [p] = await sql`select 1 from posts where id = ${postId} and deleted_at is null`;
+// a post's image (post-composer.ts stores them under the post), for as long
+// as the post is up; a scheduled post's only for its channel
+async function postImage(postId: string, file: string, viewer: Viewer): Promise<Response> {
+	const [p] = await sql`select published_at <= now() as published from posts where id = ${postId} and deleted_at is null and (published_at <= now() or channel_id = ${viewer?.channelId ?? ""})`;
 	const path = join(postMediaDir(postId), file);
 	if (!p || !existsSync(path)) return new Response("not found", { status: 404 });
-	return new Response(Bun.file(path), { headers: { "cache-control": "public, max-age=86400", "x-content-type-options": "nosniff" } });
+	return new Response(Bun.file(path), { headers: { "cache-control": p.published ? "public, max-age=86400" : "private, no-cache", "x-content-type-options": "nosniff" } });
 }
 
 // /api/stats/playback is pinged once when playback starts: that is a view.
@@ -134,7 +135,7 @@ export async function instanceRoutes(req: Request, url: URL, viewer: Viewer): Pr
 		return new Response(null, { status: 303, headers });
 	}
 	if (path === "/getAccountSwitcherEndpoint") return accountSwitcher(req);
-	if (path.startsWith("/ggpht/")) return ggpht(req, url);
+	if (path.startsWith("/ggpht/")) return ggpht(req, url, viewer);
 	const postUpload = await postImageUploadRoute(req, url, viewer);
 	if (postUpload) return postUpload;
 	const picker = await pickerRoutes(req, url, viewer);

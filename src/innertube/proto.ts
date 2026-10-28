@@ -98,6 +98,22 @@ export function createDialogFromParams(params: string | undefined): boolean {
 	}
 }
 
+// the Posts tab's Scheduled section (posts.ts): the tab's params with a
+// field of this instance's own appended, which YouTube's params don't use
+const SCHEDULED_POSTS_FIELD = 500;
+export function withScheduledPosts(params: string): string {
+	const bytes = Uint8Array.from([...fromBase64(params), ...encode({ [SCHEDULED_POSTS_FIELD]: 1 })]);
+	return Buffer.from(bytes).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "%3D");
+}
+export function scheduledPostsFromParams(params: string | undefined): boolean {
+	if (!params) return false;
+	try {
+		return decode(fromBase64(params)).has(SCHEDULED_POSTS_FIELD);
+	} catch {
+		return false;
+	}
+}
+
 // the tab name in a channel browse params blob ({2: "videos", ...})
 export function channelTabFromParams(params: string | undefined): string | undefined {
 	if (!params) return undefined;

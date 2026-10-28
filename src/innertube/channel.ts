@@ -15,7 +15,7 @@ import { make, tpl, fill, type Vars } from "./tpl";
 import { baseVars, channelVars, videoVars } from "./vars";
 import { subscribeAction } from "./subscribe";
 import { shortLockup } from "./feeds";
-import { hasPosts, postsShelf, postsTab } from "./posts";
+import { hasPosts, postsShelf, postsTab, scheduledPostsPath } from "./posts";
 
 export const CHANNEL_PAGE = 30;
 export type ChannelTab = "featured" | "videos" | "shorts" | "playlists" | "posts";
@@ -179,22 +179,23 @@ export async function channelHeader(c: Channel, viewer: Viewer, vars: Vars) {
 	return { header: { pageHeaderRenderer: header }, mutations: [] as unknown[] };
 }
 
-export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, openComposer = false) {
+export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, posts: { openComposer?: boolean; scheduledPosts?: boolean } = {}) {
 	// with the Home tab turned off in Studio, the channel opens on its first other tab
 	const hasPlaylists = (await channelPlaylistLockups(c, viewer)).length > 0;
 	const has = async (kind: GridKind) => (await channelVideos(c.id, viewer, 1, 0, "newest", kind)).length > 0;
 	// the owner always has Posts (its composer); others once there is a post
-	const posts = viewer?.channelId === c.id || (await hasPosts(c.id));
-	const available: ChannelTab[] = [...(c.home_tab_enabled === false ? [] : ["featured" as const]), ...((await has("videos")) ? ["videos" as const] : []), ...((await has("shorts")) ? ["shorts" as const] : []), ...(hasPlaylists ? ["playlists" as const] : []), ...(posts ? ["posts" as const] : [])];
+	const hasPostsTab = viewer?.channelId === c.id || (await hasPosts(c.id));
+	const available: ChannelTab[] = [...(c.home_tab_enabled === false ? [] : ["featured" as const]), ...((await has("videos")) ? ["videos" as const] : []), ...((await has("shorts")) ? ["shorts" as const] : []), ...(hasPlaylists ? ["playlists" as const] : []), ...(hasPostsTab ? ["posts" as const] : [])];
 	if (tab === "featured" && !available.includes("featured")) tab = available[0] ?? "featured";
-	const path = `/@${c.handle}${tab === "featured" ? "" : `/${tab}`}`;
+	const scheduled = tab === "posts" && !!posts.scheduledPosts && viewer?.channelId === c.id;
+	const path = scheduled ? scheduledPostsPath(c) : `/@${c.handle}${tab === "featured" ? "" : `/${tab}`}`;
 	const vars = { ...baseVars(viewer, path), ...channelVars(c) };
 	const page = make("channel/page", vars);
 	let content: unknown;
 	if (tab === "videos") content = { richGridRenderer: make("channel/videos_grid", { ...vars, ...sortVars(c, "newest", "videos"), ITEMS: await videoGridItems(c, viewer, 0, "newest") }) };
 	else if (tab === "shorts") content = { richGridRenderer: make("channel/shorts_grid", { ...sortVars(c, "newest", "shorts"), ITEMS: await videoGridItems(c, viewer, 0, "newest", "shorts") }) };
 	else if (tab === "playlists") content = await playlistsTab(c, viewer, vars);
-	else if (tab === "posts") content = await postsTab(c, viewer, openComposer);
+	else if (tab === "posts") content = await postsTab(c, viewer, { openComposer: posts.openComposer, scheduled });
 	else content = await homeTab(c, viewer, vars);
 	// YouTube lists only the tabs a channel has content for
 	const show: string[] = [...(available.includes(tab) ? available : [tab, ...available]), "search"];

@@ -20,8 +20,9 @@ import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelTab,
 import { SETTINGS_PAGES, SETTINGS_PATHS, settingsPage } from "./settings";
 import { signInUrl } from "./vars";
 import { CREATE_POST_PARAMS } from "./post-composer";
-import { createDialogFromParams } from "./proto";
-import { getPost, postCommand, postIdFromParams, postPage, postParams, postsContinuation } from "./posts";
+import { createDialogFromParams, scheduledPostsFromParams, withScheduledPosts } from "./proto";
+import { postCommand, postIdFromParams, postPage, postParams, postsContinuation } from "./posts";
+import { sql } from "../db";
 
 // the browse command for a channel tab, as the tab strip's endpoints have it
 function channelCommand(c: Channel, tab: ChannelTab) {
@@ -95,7 +96,7 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 		const c = await getChannel({ id: browseId });
 		if (!c) return undefined;
 		const tab = channelTab(params);
-		const r = await channelPage(c, tab, viewer, tab === "posts" && createDialogFromParams(params));
+		const r = await channelPage(c, tab, viewer, tab === "posts" ? { openComposer: createDialogFromParams(params), scheduledPosts: scheduledPostsFromParams(params) } : {});
 		return { kind: "channel", title: c.title, url: r.path, command: channelCommand(c, tab), response: r.response };
 	}
 	return undefined;
@@ -104,7 +105,7 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 const homeFilter = (f: unknown): HomeFilter => (f === "recent" || f === "watched" || f === "new" ? f : "all");
 
 async function continuation(token: string, viewer: Viewer) {
-	const t = decodeToken<{ k: string; o: number; c?: string; s?: ChannelSort; reload?: boolean; p?: string; q?: string; f?: string }>(token);
+	const t = decodeToken<{ k: string; o: number; c?: string; s?: ChannelSort; reload?: boolean; p?: string; q?: string; f?: string; v?: string }>(token);
 	if (!t) throw new ApiError(400, "Invalid continuation");
 	let items: unknown[] = [];
 	let target = "";
@@ -125,7 +126,7 @@ async function continuation(token: string, viewer: Viewer) {
 		if (t.reload) return { responseContext: responseContext(viewer), ...(await videoGridReload(c, viewer, t.s ?? "newest", kind)) };
 		items = await videoGridItems(c, viewer, t.o, t.s ?? "newest", kind);
 		target = `browse-feed${c.id}${kind}`;
-	} else if (t.k === "posts" && t.c) return postsContinuation(t.c, t.o, viewer);
+	} else if (t.k === "posts" && t.c) return postsContinuation(t.c, t.o, viewer, t.v === "scheduled" ? "scheduled" : "published");
 	else if (t.k === "comments" || t.k === "replies") {
 		// the Shorts player's comments panel and a post's comments
 		const { commentsContinuation } = await import("./comments");
@@ -162,7 +163,7 @@ export async function resolvePath(url: URL): Promise<{ browseId: string; params?
 	}
 	const post = /^\/post\/(Ugkx[A-Za-z0-9_-]{32})$/.exec(p);
 	if (post) {
-		const found = await getPost(post[1], null);
+		const [found] = await sql`select id, channel_id from posts where id = ${post[1]} and deleted_at is null`;
 		return found ? { browseId: "FEpost_detail", params: postParams(found.id, found.channel_id) } : undefined;
 	}
 	const m = /^\/(?:@([A-Za-z0-9._-]{3,30})|channel\/(UC[A-Za-z0-9_-]{22}))(?:\/(featured|videos|shorts|playlists|posts|community))?$/.exec(decodeURIComponent(p));
@@ -172,6 +173,7 @@ export async function resolvePath(url: URL): Promise<{ browseId: string; params?
 		const tab = m[3] === "community" ? "posts" : m[3];
 		// the Create menu's "Create post" opens the composer (the params YouTube's own link carries)
 		if (tab === "posts" && url.searchParams.get("show_create_dialog") === "1") return { browseId: c.id, params: CREATE_POST_PARAMS };
+		if (tab === "posts" && url.searchParams.get("view") === "scheduled") return { browseId: c.id, params: withScheduledPosts(tabParams("posts")) };
 		return { browseId: c.id, params: tab ? tabParams(tab as ChannelTab) : undefined };
 	}
 	return undefined;
