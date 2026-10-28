@@ -6,13 +6,70 @@
 					{
 						"gridRenderer": {
 							"items": "{{ITEMS}}",
-							"targetId": "browse-feed{{CHANNEL_ID}}playlists104"
+							"targetId": "{{GRID_ID}}"
 						}
 					}
 				]
 			}
 		}
 	],
+	"subMenu": {
+		"channelSubMenuRenderer": {
+			"sortSetting": {
+				"sortFilterSubMenuRenderer": {
+					"subMenuItems": [
+						{
+							"title": "Date added (newest)",
+							"selected": "{{SORT_DD}}",
+							"navigationEndpoint": {
+								"commandMetadata": {
+									"webCommandMetadata": {
+										"url": "/{{AT_HANDLE}}/playlists?view=1&sort=dd&flow=grid",
+										"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+										"rootVe": 3611,
+										"apiUrl": "/youtubei/v1/browse"
+									}
+								},
+								"browseEndpoint": {
+									"browseId": "{{CHANNEL_ID}}",
+									"params": "EglwbGF5bGlzdHMYAyABMAHyBgQKAkIA",
+									"canonicalBaseUrl": "/{{AT_HANDLE}}"
+								}
+							}
+						},
+						{
+							"title": "Last video added",
+							"selected": "{{SORT_LAD}}",
+							"navigationEndpoint": {
+								"commandMetadata": {
+									"webCommandMetadata": {
+										"url": "/{{AT_HANDLE}}/playlists?view=1&sort=lad&flow=grid",
+										"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+										"rootVe": 3611,
+										"apiUrl": "/youtubei/v1/browse"
+									}
+								},
+								"browseEndpoint": {
+									"browseId": "{{CHANNEL_ID}}",
+									"params": "EglwbGF5bGlzdHMYBCABMAHyBgQKAkIA",
+									"canonicalBaseUrl": "/{{AT_HANDLE}}"
+								}
+							}
+						}
+					],
+					"title": "Sort by",
+					"icon": {
+						"iconType": "SORT"
+					},
+					"accessibility": {
+						"accessibilityData": {
+							"label": "Sort by"
+						}
+					}
+				}
+			}
+		}
+	},
 	"targetId": "{{TARGET_ID}}",
 	"disablePullToRefresh": true
 }

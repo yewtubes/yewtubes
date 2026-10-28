@@ -7,7 +7,7 @@ import type { Viewer } from "../client/page";
 import { PUBLIC_ORIGIN } from "../config";
 import { channelSubscriptions, channelVideos, channelsInOrder, getVideo, isSubscribed, markWatched } from "../data";
 import { encodeToken } from "../ids";
-import { channelPlaylistLockups, getPlaylist, playlistVideos } from "./playlists";
+import { type PlaylistSort, channelPlaylistLockups, getPlaylist, playlistVideos } from "./playlists";
 import { type ShelfDefinition, savedShelves } from "../home-layout";
 import { type Channel, type Video, dateText, grouped, urlEndpoint } from "./r";
 import { channelTabFromParams } from "./proto";
@@ -215,8 +215,25 @@ async function homeTab(c: Channel, viewer: Viewer, vars: Vars, mutations: unknow
 	return { sectionListRenderer: make("channel/home_sections", { ...vars, SECTIONS: sections.filter(Boolean), TARGET_ID: `browse-feed${c.id}featured` }) };
 }
 
-async function playlistsTab(c: Channel, viewer: Viewer, vars: Vars) {
-	return { sectionListRenderer: make("channel/playlists_sections", { ...vars, ITEMS: await channelPlaylistLockups(c, viewer), TARGET_ID: `browse-feed${c.id}playlists` }) };
+// the Playlists tab: 30 playlists at a time, then a continuation, under
+// YouTube's Sort by (Date added (newest), Last video added)
+const playlistsGridId = (c: Channel) => `browse-feed${c.id}playlists104`;
+export async function playlistGridItems(c: Channel, viewer: Viewer, sort: PlaylistSort, offset: number) {
+	const all = await channelPlaylistLockups(c, viewer, sort);
+	const items: unknown[] = all.slice(offset, offset + CHANNEL_PAGE);
+	if (all.length > offset + CHANNEL_PAGE) items.push(make("item/continuation", { CONTINUATION: encodeToken({ k: "chplaylists", c: c.id, o: offset + CHANNEL_PAGE, s: sort }) }));
+	return { items, target: playlistsGridId(c) };
+}
+
+async function playlistsTab(c: Channel, viewer: Viewer, vars: Vars, sort: PlaylistSort) {
+	const { items } = await playlistGridItems(c, viewer, sort, 0);
+	return { sectionListRenderer: make("channel/playlists_sections", { ...vars, ITEMS: items, GRID_ID: playlistsGridId(c), SORT_DD: sort === "dd", SORT_LAD: sort === "lad", TARGET_ID: `browse-feed${c.id}playlists` }) };
+}
+
+// the params of a Sort by choice (constant across channels)
+export function playlistSortParams(sort: PlaylistSort): string {
+	const items = tpl("channel/playlists_sections").subMenu.channelSubMenuRenderer.sortSetting.sortFilterSubMenuRenderer.subMenuItems;
+	return items[sort === "lad" ? 1 : 0].navigationEndpoint.browseEndpoint.params;
 }
 
 // a link as YouTube writes it beside a channel: no scheme, no trailing slash
@@ -246,7 +263,7 @@ export async function channelHeader(c: Channel, viewer: Viewer, vars: Vars) {
 	return { header: { pageHeaderRenderer: header }, mutations: [] as unknown[] };
 }
 
-export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, posts: { openComposer?: boolean; scheduledPosts?: boolean } = {}) {
+export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, opts: { openComposer?: boolean; scheduledPosts?: boolean; playlistSort?: PlaylistSort } = {}) {
 	// with the Home tab turned off in Studio, the channel opens on its first other tab
 	const hasPlaylists = (await channelPlaylistLockups(c, viewer)).length > 0;
 	const has = async (kind: GridKind) => (await channelVideos(c.id, viewer, 1, 0, "newest", kind)).length > 0;
@@ -254,16 +271,17 @@ export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, p
 	const hasPostsTab = viewer?.channelId === c.id || (await hasPosts(c.id));
 	const available: ChannelTab[] = [...(c.home_tab_enabled === false ? [] : ["featured" as const]), ...((await has("videos")) ? ["videos" as const] : []), ...((await has("shorts")) ? ["shorts" as const] : []), ...(hasPlaylists ? ["playlists" as const] : []), ...(hasPostsTab ? ["posts" as const] : [])];
 	if (tab === "featured" && !available.includes("featured")) tab = available[0] ?? "featured";
-	const scheduled = tab === "posts" && !!posts.scheduledPosts && viewer?.channelId === c.id;
-	const path = scheduled ? scheduledPostsPath(c) : `/@${c.handle}${tab === "featured" ? "" : `/${tab}`}`;
+	const scheduled = tab === "posts" && !!opts.scheduledPosts && viewer?.channelId === c.id;
+	const playlistSort = opts.playlistSort ?? "dd";
+	const path = scheduled ? scheduledPostsPath(c) : tab === "playlists" && playlistSort === "lad" ? `/@${c.handle}/playlists?view=1&sort=lad&flow=grid` : `/@${c.handle}${tab === "featured" ? "" : `/${tab}`}`;
 	const vars = { ...baseVars(viewer, path), ...channelVars(c) };
 	const page = make("channel/page", vars);
 	let content: unknown;
 	const shelfMutations: unknown[] = [];
 	if (tab === "videos") content = { richGridRenderer: make("channel/videos_grid", { ...vars, ...sortVars(c, "newest", "videos"), ITEMS: await videoGridItems(c, viewer, 0, "newest") }) };
 	else if (tab === "shorts") content = { richGridRenderer: make("channel/shorts_grid", { ...sortVars(c, "newest", "shorts"), ITEMS: await videoGridItems(c, viewer, 0, "newest", "shorts") }) };
-	else if (tab === "playlists") content = await playlistsTab(c, viewer, vars);
-	else if (tab === "posts") content = await postsTab(c, viewer, { openComposer: posts.openComposer, scheduled });
+	else if (tab === "playlists") content = await playlistsTab(c, viewer, vars, playlistSort);
+	else if (tab === "posts") content = await postsTab(c, viewer, { openComposer: opts.openComposer, scheduled });
 	else content = await homeTab(c, viewer, vars, shelfMutations);
 	// YouTube lists only the tabs a channel has content for
 	const show: string[] = [...(available.includes(tab) ? available : [tab, ...available]), "search"];

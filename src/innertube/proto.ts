@@ -114,6 +114,17 @@ export function scheduledPostsFromParams(params: string | undefined): boolean {
 	}
 }
 
+// the Playlists tab's Sort by in its params blob ({2: "playlists", 3: 3 for
+// Date added (newest), 4 for Last video added})
+export function playlistSortFromParams(params: string | undefined): "dd" | "lad" {
+	if (!params) return "dd";
+	try {
+		return decode(fromBase64(params)).get(3)?.[0] === 4 ? "lad" : "dd";
+	} catch {
+		return "dd";
+	}
+}
+
 // the tab name in a channel browse params blob ({2: "videos", ...})
 export function channelTabFromParams(params: string | undefined): string | undefined {
 	if (!params) return undefined;

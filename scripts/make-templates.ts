@@ -705,11 +705,11 @@ function channel() {
 	const plSample = gridR.items.find((x: any) => x.lockupViewModel);
 	save("item/playlist_lockup", playlistLockup(plSample, channelPairs(), ids), samples);
 	gridR.items = "{{ITEMS}}";
-	delete plSections.subMenu;
-	const subMenu = find(plSections, "channelSubMenuRenderer");
-	if (subMenu) {
-		const holderSub = holder(plSections, "channelSubMenuRenderer");
-		delete holderSub.channelSubMenuRenderer;
+	gridR.targetId = "{{GRID_ID}}";
+	// Sort by: Date added (newest), Last video added
+	for (const it of find(plSections.subMenu, "sortFilterSubMenuRenderer").subMenuItems) {
+		const sort = new URL(it.navigationEndpoint.commandMetadata.webCommandMetadata.url, "https://x").searchParams.get("sort");
+		it.selected = `{{SORT_${String(sort).toUpperCase()}}}`;
 	}
 	plSections.targetId = "{{TARGET_ID}}";
 	save("channel/playlists_sections", tokenize(dropItems(plSections, (x) => x && typeof x === "object" && Object.keys(x).length === 0), channelPairs(), ids), samples);

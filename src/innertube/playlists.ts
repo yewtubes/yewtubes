@@ -18,7 +18,7 @@ import type { BrowseResult } from "./browse";
 
 const PAGE = 100;
 
-type Playlist = { id: string; user_id: string; title: string; description: string; visibility: "public" | "unlisted" | "private"; video_order: number; kind: "user" | "watch_later" | "liked"; updated_at: Date; video_count: number; first_video: string | null; owner_channel: string; owner_title: string; owner_handle: string };
+type Playlist = { id: string; user_id: string; title: string; description: string; visibility: "public" | "unlisted" | "private"; video_order: number; kind: "user" | "watch_later" | "liked"; updated_at: Date; video_count: number; first_video: string | null; owner_channel: string; owner_title: string; owner_handle: string; created_at?: Date; last_added?: Date | null };
 
 const VIDEO_COLUMNS = sql`v.id, v.title, v.description, v.channel_id, c.title as channel_title, c.handle as channel_handle, c.avatar_path as channel_avatar,
 	v.duration_ms, v.view_count::int as view_count, v.like_count, v.comment_count, v.published_at, v.created_at, v.visibility, v.status, v.width, v.height, v.category_id`;
@@ -74,7 +74,8 @@ export async function userPlaylists(viewer: Viewer, ownerUserId?: string, includ
 	if (!uid) return [];
 	const rows = await sql`select p.*, c.id as owner_channel, c.title as owner_title, c.handle as owner_handle,
 		(select count(*)::int from playlist_items i join videos v on v.id = i.video_id where i.playlist_id = p.id and ${PLAYABLE(viewer)}) as video_count,
-		(select i.video_id from playlist_items i join videos v on v.id = i.video_id where i.playlist_id = p.id and ${PLAYABLE(viewer)} order by i.position limit 1) as first_video
+		(select i.video_id from playlist_items i join videos v on v.id = i.video_id where i.playlist_id = p.id and ${PLAYABLE(viewer)} order by i.position limit 1) as first_video,
+		(select max(i.added_at) from playlist_items i where i.playlist_id = p.id) as last_added
 		from playlists p join channels c on c.user_id = p.user_id
 		where p.user_id = ${uid} and p.kind = 'user' and (${includePrivate} or p.visibility = 'public') order by p.updated_at desc`;
 	return rows.map((p: Playlist) => ({ ...p, user_id: String(p.user_id) }));
@@ -145,8 +146,13 @@ export function playlistCard(p: Playlist, viewer: Viewer, page = "/feed/playlist
 }
 
 // a channel's Playlists tab (template item/playlist_lockup); empty lists are not shown
-export async function channelPlaylistLockups(c: Channel, viewer: Viewer) {
+// a channel's Playlists tab, sorted as its Sort by asks: Date added (newest)
+// or Last video added
+export type PlaylistSort = "dd" | "lad";
+export async function channelPlaylistLockups(c: Channel, viewer: Viewer, sort: PlaylistSort = "dd") {
 	const lists = (await userPlaylists(viewer, c.user_id, viewer?.channelId === c.id)).filter((p) => p.first_video);
+	const at = (p: Playlist) => +((sort === "lad" ? p.last_added : null) ?? p.created_at ?? p.updated_at);
+	lists.sort((a, b) => at(b) - at(a));
 	return lists.map((p) =>
 		make("item/playlist_lockup", {
 			...baseVars(viewer, `/@${c.handle}/playlists`),

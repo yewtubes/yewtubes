@@ -16,11 +16,11 @@ import { playlistBrowse } from "./playlists";
 import { type Channel, browseEndpoint, responseContext, runs } from "./r";
 import { ApiError, route } from "./router";
 import { recordMiss } from "../diagnostics";
-import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelsPanel, channelTab, tabParams, videoGridItems, videoGridReload } from "./channel";
+import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelsPanel, playlistGridItems, playlistSortParams, channelTab, tabParams, videoGridItems, videoGridReload } from "./channel";
 import { SETTINGS_PAGES, SETTINGS_PATHS, settingsPage } from "./settings";
 import { signInUrl } from "./vars";
 import { CREATE_POST_PARAMS } from "./post-composer";
-import { createDialogFromParams, scheduledPostsFromParams, withScheduledPosts } from "./proto";
+import { createDialogFromParams, playlistSortFromParams, scheduledPostsFromParams, withScheduledPosts } from "./proto";
 import { postCommand, postIdFromParams, postPage, postParams, postsContinuation } from "./posts";
 import { sql } from "../db";
 
@@ -96,7 +96,7 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 		const c = await getChannel({ id: browseId });
 		if (!c) return undefined;
 		const tab = channelTab(params);
-		const r = await channelPage(c, tab, viewer, tab === "posts" ? { openComposer: createDialogFromParams(params), scheduledPosts: scheduledPostsFromParams(params) } : {});
+		const r = await channelPage(c, tab, viewer, tab === "posts" ? { openComposer: createDialogFromParams(params), scheduledPosts: scheduledPostsFromParams(params) } : tab === "playlists" ? { playlistSort: playlistSortFromParams(params) } : {});
 		return { kind: "channel", title: c.title, url: r.path, command: channelCommand(c, tab), response: r.response };
 	}
 	return undefined;
@@ -118,10 +118,14 @@ async function continuation(token: string, viewer: Viewer) {
 		if (!viewer) throw new ApiError(401, "Sign in to do this.", "authError");
 		return t.k === "plfeed" ? playlistsReload(viewer, { k: "plfeed", s: Number(t.s) || 0, f: t.f }) : channelsReload(viewer, Number(t.s) || 0);
 	}
-	else if ((t.k === "chvideos" || t.k === "about" || t.k === "chchannels") && t.c) {
+	else if ((t.k === "chvideos" || t.k === "about" || t.k === "chchannels" || t.k === "chplaylists") && t.c) {
 		const c = await getChannel({ id: t.c });
 		if (!c) throw new ApiError(404, "Not found");
 		if (t.k === "about") return { responseContext: responseContext(viewer), ...(await aboutPanel(c, viewer)) };
+		if (t.k === "chplaylists") {
+			const r = await playlistGridItems(c, viewer, String(t.s) === "lad" ? "lad" : "dd", Number(t.o) || 0);
+			return { responseContext: responseContext(viewer), onResponseReceivedActions: [appendAction(r.items, r.target)] };
+		}
 		if (t.k === "chchannels") return { responseContext: responseContext(viewer), ...(await channelsPanel(c, viewer, Number(t.i) || 0, String(t.t ?? ""))) };
 		const kind = t.f === "shorts" ? "shorts" : "videos";
 		if (t.reload) return { responseContext: responseContext(viewer), ...(await videoGridReload(c, viewer, t.s ?? "newest", kind)) };
@@ -175,6 +179,7 @@ export async function resolvePath(url: URL): Promise<{ browseId: string; params?
 		// the Create menu's "Create post" opens the composer (the params YouTube's own link carries)
 		if (tab === "posts" && url.searchParams.get("show_create_dialog") === "1") return { browseId: c.id, params: CREATE_POST_PARAMS };
 		if (tab === "posts" && url.searchParams.get("view") === "scheduled") return { browseId: c.id, params: withScheduledPosts(tabParams("posts")) };
+		if (tab === "playlists" && url.searchParams.get("sort") === "lad") return { browseId: c.id, params: playlistSortParams("lad") };
 		return { browseId: c.id, params: tab ? tabParams(tab as ChannelTab) : undefined };
 	}
 	return undefined;
