@@ -176,6 +176,35 @@
 															},
 															"style": "COMPACT_LINK_STYLE_TYPE_CREATION_MENU"
 														}
+													},
+													{
+														"compactLinkRenderer": {
+															"icon": {
+																"iconType": "CREATION_POST"
+															},
+															"title": {
+																"runs": [
+																	{
+																		"text": "Create post"
+																	}
+																]
+															},
+															"navigationEndpoint": {
+																"commandMetadata": {
+																	"webCommandMetadata": {
+																		"url": "/channel/{{VIEWER_CHANNEL_ID}}/posts?show_create_dialog=1",
+																		"webPageType": "WEB_PAGE_TYPE_CHANNEL",
+																		"rootVe": 3611,
+																		"apiUrl": "/youtubei/v1/browse"
+																	}
+																},
+																"browseEndpoint": {
+																	"browseId": "{{VIEWER_CHANNEL_ID}}",
+																	"params": "EgVwb3N0c8oEBAoCCAHyBgkKB0oAogECCAE%3D"
+																}
+															},
+															"style": "COMPACT_LINK_STYLE_TYPE_CREATION_MENU"
+														}
 													}
 												]
 											}

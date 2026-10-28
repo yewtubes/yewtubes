@@ -21,6 +21,7 @@ import { adminRoutes } from "./admin";
 import { gifRoutes } from "./gifs";
 import { suggest } from "./innertube/search";
 import { accountSwitcher } from "./innertube/guide";
+import { postImageUploadRoute, postMediaDir } from "./innertube/post-composer";
 import { recordWatch } from "./innertube/history";
 import { playedMs, recordView, recordWatchTime } from "./stats";
 
@@ -65,6 +66,8 @@ const PLACEHOLDER_AVATAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 // changes its picture (Studio's Customization), so browsers revalidate;
 // "avatar-default" is the letter picture a channel has without one of its own
 async function ggpht(req: Request, url: URL): Promise<Response> {
+	const post = /^\/ggpht\/post\/(Ugkx[A-Za-z0-9_-]{32})\/([\w-]{16}\.(?:jpg|png|gif|webp))(?:=[\w-]*)?$/.exec(url.pathname);
+	if (post) return postImage(post[1], post[2]);
 	const m = /^\/ggpht\/(UC[A-Za-z0-9_-]{22})\/(avatar-default|avatar|banner)/.exec(url.pathname);
 	if (!m) return new Response("not found", { status: 404 });
 	const [c] = await sql`select title, avatar_path, banner_path from channels where id = ${m[1]}`;
@@ -77,6 +80,14 @@ async function ggpht(req: Request, url: URL): Promise<Response> {
 	if (req.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers });
 	if (own) return new Response(Bun.file(join(MEDIA_DIR, p)), { headers });
 	return new Response(avatarSvg(m[1], [...c.title][0] ?? "?"), { headers: { ...headers, "content-type": "image/svg+xml" } });
+}
+
+// a post's image (post-composer.ts stores them under the post), for as long as the post is up
+async function postImage(postId: string, file: string): Promise<Response> {
+	const [p] = await sql`select 1 from posts where id = ${postId} and deleted_at is null`;
+	const path = join(postMediaDir(postId), file);
+	if (!p || !existsSync(path)) return new Response("not found", { status: 404 });
+	return new Response(Bun.file(path), { headers: { "cache-control": "public, max-age=86400", "x-content-type-options": "nosniff" } });
 }
 
 // /api/stats/playback is pinged once when playback starts: that is a view.
@@ -123,6 +134,8 @@ export async function instanceRoutes(req: Request, url: URL, viewer: Viewer): Pr
 	}
 	if (path === "/getAccountSwitcherEndpoint") return accountSwitcher(req);
 	if (path.startsWith("/ggpht/")) return ggpht(req, url);
+	const postUpload = await postImageUploadRoute(req, url, viewer);
+	if (postUpload) return postUpload;
 	if (path.startsWith("/api/stats/")) return stats(url, viewer);
 	if (path === "/complete/search") return suggest(url);
 	if (path === "/favicon.ico") {

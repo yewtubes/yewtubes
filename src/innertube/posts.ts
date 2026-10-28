@@ -17,6 +17,7 @@ import { baseVars, channelVars } from "./vars";
 import { descriptionRuns, tabParams } from "./channel";
 import { videoRendererVars } from "./search";
 import { encode } from "./proto";
+import { composer, editDialog } from "./post-composer";
 
 export const POSTS_PAGE = 10;
 
@@ -56,8 +57,9 @@ export async function getPost(id: string, viewer: Viewer): Promise<Post | undefi
 
 export const hasPosts = async (channelId: string) => (await sql`select 1 from posts where channel_id = ${channelId} and deleted_at is null limit 1`).length > 0;
 
-// a post's images, served by this instance (media/post-images.ts)
+// a post's images, served by this instance (instance.ts, as post-composer.ts stored them)
 export const postImageUrl = (postId: string, file: string, size = 640) => `${PUBLIC_ORIGIN}/ggpht/post/${postId}/${file}=s${size}`;
+const imageThumbs = (postId: string, f: { file: string; width: number; height: number }) => [{ url: postImageUrl(postId, f.file), width: f.width, height: f.height }];
 
 // how the post shows its like count, before and after the viewer's vote
 function voteCount(n: number) {
@@ -110,6 +112,40 @@ async function poll(p: Post, c: Channel, viewer: Viewer, vars: Vars, choices: { 
 	return make("item/post_poll", { CHOICES: items, TOTAL_VOTES: votesText(total).simpleText, POLL_TYPE: type });
 }
 
+// a quiz (ytd-backstage-quiz-renderer): one answer per viewer through the
+// poll's vote action; once answered (and for the author) it shows the
+// correct answer, the explanation and each answer's share
+async function quiz(p: Post, c: Channel, viewer: Viewer, choices: { text: string; correct: boolean; explanation?: string }[]) {
+	const rows = (await sql`select choice, count(*)::int as n from post_votes where post_id = ${p.id} group by choice`) as { choice: number; n: number }[];
+	const total = rows.reduce((a, r) => a + r.n, 0);
+	const [mine] = viewer ? await sql`select choice from post_votes where post_id = ${p.id} and user_id = ${viewer.userId}` : [];
+	const answered: number = mine ? mine.choice : -1;
+	const owner = viewer?.channelId === c.id;
+	const explanation = choices.find((ch) => ch.correct)?.explanation ?? "";
+	const next = { commandMetadata: { webCommandMetadata: { url: `/post/${p.id}`, webPageType: "WEB_PAGE_TYPE_BROWSE", rootVe: 247244, apiUrl: "/youtubei/v1/browse" } }, browseEndpoint: { browseId: "FEpost_detail", params: postParams(p.id, c.id) } };
+	const items = choices.map((ch, i) => {
+		const n = rows.find((r) => r.choice === i)?.n ?? 0;
+		const base = { text: runs(ch.text), isCorrect: ch.correct, ...(explanation ? { explanation: runs(explanation) } : {}) };
+		if (!viewer) return { ...base, signinEndpoint: (make("item/post_poll_choice_out", { ...baseVars(viewer, `/post/${p.id}`), TEXT: ch.text, NEXT_ENDPOINT: next }) as any).signinEndpoint };
+		const shown = answered >= 0 || owner ? { votePercentage: { simpleText: `${total ? Math.round((n / total) * 100) : 0}%` } } : {};
+		if (owner) return { ...base, ...shown };
+		return { ...base, isSelected: answered === i, ...shown, selectServiceEndpoint: actionEndpoint(actionToken("pvote", p.id, viewer.userId, i), pollTotal(total + (answered >= 0 ? 0 : 1))) };
+	});
+	return {
+		quizRenderer: {
+			choices: items,
+			totalVotes: votesText(total),
+			type: "POLL_TYPE_TEXT",
+			enableAnimation: true,
+			explanationHeaderText: runs("Explanation"),
+			explanationExpandText: runs("Read more"),
+			explanationCollapseText: runs("Show less"),
+			votedText: { simpleText: "Your answer" },
+			correctVotedText: { simpleText: "Correct answer" },
+		},
+	};
+}
+
 async function attachment(p: Post, c: Channel, viewer: Viewer, vars: Vars): Promise<unknown> {
 	const a = p.attachment;
 	if (!a) return undefined;
@@ -119,12 +155,13 @@ async function attachment(p: Post, c: Channel, viewer: Viewer, vars: Vars): Prom
 		return make("item/post_video", videoRendererVars(v as Video, viewer));
 	}
 	if ("images" in a) {
-		const image = (f: { file: string }) => ({ ...vars, IMAGE_THUMBS: [{ url: postImageUrl(p.id, f.file), width: 640, height: 640 }] });
+		const image = (f: { file: string; width: number; height: number }) => ({ ...vars, IMAGE_THUMBS: imageThumbs(p.id, f) });
 		if (a.images.length === 1) return make("item/post_image", image(a.images[0]));
 		return make("item/post_multi_image", { IMAGES: a.images.map((f) => make("item/post_multi_image_item", image(f))) });
 	}
 	if ("poll" in a) return poll(p, c, viewer, vars, a.poll.choices.map((text) => ({ text })), "POLL_TYPE_TEXT");
-	if ("imagePoll" in a) return poll(p, c, viewer, vars, a.imagePoll.choices.map((ch) => ({ text: ch.text, image: { thumbnails: [{ url: postImageUrl(p.id, ch.file), width: 640, height: 640 }] } })), "POLL_TYPE_IMAGE");
+	if ("imagePoll" in a) return poll(p, c, viewer, vars, a.imagePoll.choices.map((ch) => ({ text: ch.text, image: { thumbnails: imageThumbs(p.id, ch) } })), "POLL_TYPE_IMAGE");
+	if ("quiz" in a) return quiz(p, c, viewer, a.quiz.choices);
 	return undefined;
 }
 
@@ -157,14 +194,16 @@ async function postVars(p: Post, c: Channel, viewer: Viewer): Promise<Vars> {
 			VOTE_UNLIKE: voteCount(others),
 			VOTE_DISLIKE: voteCount(others),
 			VOTE_UNDISLIKE: voteCount(others),
-			// the author's own post: Delete (Report is not offered on this instance)
-			MENU_ITEMS:
-				viewer.channelId === c.id
-					? [{ menuServiceItemRenderer: { text: runs("Delete"), icon: { iconType: "DELETE" }, serviceEndpoint: serviceEndpoint("/youtubei/v1/comment/perform_comment_action", { performCommentActionEndpoint: { action: actionToken("pdelete", p.id, viewer.userId) } }) } }]
-					: [],
+			// the author's own post: Edit and Delete (Report is not offered on this instance)
+			MENU_ITEMS: [],
 		});
 	}
 	vars.ATTACHMENT = await attachment(p, c, viewer, vars);
+	if (viewer && viewer.channelId === c.id)
+		vars.MENU_ITEMS = [
+			{ menuNavigationItemRenderer: { text: runs("Edit"), icon: { iconType: "EDIT" }, navigationEndpoint: { updateCommentDialogEndpoint: { dialog: editDialog(c, viewer, p, vars.ATTACHMENT) } } } },
+			{ menuServiceItemRenderer: { text: runs("Delete"), icon: { iconType: "DELETE" }, serviceEndpoint: serviceEndpoint("/youtubei/v1/comment/perform_comment_action", { performCommentActionEndpoint: { action: actionToken("pdelete", p.id, viewer.userId) } }) } },
+		];
 	return vars;
 }
 
@@ -184,6 +223,11 @@ export async function postThread(p: Post, c: Channel, viewer: Viewer, onPage = f
 	const item = make(`item/post_thread_${io(viewer)}`, vars);
 	trim(item.backstagePostThreadRenderer.post.backstagePostRenderer, p, vars, onPage);
 	return item;
+}
+
+// the post alone (backstagePostRenderer), as an edit replaces it
+export async function postRenderer(p: Post, c: Channel, viewer: Viewer) {
+	return (await postThread(p, c, viewer)).backstagePostThreadRenderer.post;
 }
 
 // the Home tab's Posts shelf (channel/posts_shelf of item/post_home_*)
@@ -210,8 +254,17 @@ export async function postItems(c: Channel, viewer: Viewer, offset = 0) {
 	return items;
 }
 
-export async function postsTab(c: Channel, viewer: Viewer) {
-	return { sectionListRenderer: make("channel/posts_sections", { ITEMS: await postItems(c, viewer) }) };
+// the Posts tab; the owner's starts with the composer, opened by itself when
+// the Create menu's "Create post" led here
+export async function postsTab(c: Channel, viewer: Viewer, openComposer = false) {
+	const tab = make("channel/posts_sections", { ITEMS: await postItems(c, viewer) });
+	if (viewer?.channelId === c.id) {
+		const header = tab.contents[0].itemSectionRenderer.header.commentsHeaderRenderer;
+		header.createRenderer = composer(c, viewer);
+		header.shouldShowBackstagePostOptimistically = true;
+		if (openComposer) header.actions = [{ createBackstagePostDialogEndpoint: { dialog: composer(c, viewer) } }];
+	}
+	return { sectionListRenderer: tab };
 }
 
 export async function postsContinuation(channelId: string, offset: number, viewer: Viewer) {
@@ -275,6 +328,8 @@ export async function postAction(t: { a: string; po: string; ch?: number }, view
 		const choices = post?.attachment?.poll?.choices ?? post?.attachment?.imagePoll?.choices ?? post?.attachment?.quiz?.choices;
 		if (!post || !Array.isArray(choices) || !Number.isInteger(t.ch) || t.ch! < 0 || t.ch! >= choices.length) throw new ApiError(404, "This poll isn't available anymore.");
 		if (post.channel_id === viewer.channelId) throw new ApiError(400, "You can't vote in your own poll.");
+		// a quiz takes one answer for good
+		if (post.attachment.quiz && (t.a === "punvote" || (await sql`select 1 from post_votes where post_id = ${t.po} and user_id = ${viewer.userId}`).length)) throw new ApiError(400, "You've already answered this quiz.");
 		if (t.a === "punvote") await sql`delete from post_votes where post_id = ${t.po} and user_id = ${viewer.userId} and choice = ${t.ch!}`;
 		else await sql`insert into post_votes (user_id, post_id, choice) values (${viewer.userId}, ${t.po}, ${t.ch!}) on conflict (user_id, post_id) do update set choice = excluded.choice, created_at = now()`;
 		return { feedback: t.a === "pvote" ? "FEEDBACK_SELECT" : "FEEDBACK_DESELECT" };

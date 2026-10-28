@@ -16,6 +16,7 @@ import "./innertube/actions";
 import "./innertube/playlists";
 import "./innertube/comments";
 import "./innertube/shorts";
+import "./innertube/post-composer";
 import { startProcessing } from "./media/process";
 import { pruneTransfers, recoverTransfers } from "./studio/upload";
 import { thumbnail, videoplayback } from "./media/serve";

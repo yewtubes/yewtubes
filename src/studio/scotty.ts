@@ -43,6 +43,8 @@ export type ImageUpload = {
 	// what the upload is for, part of its rate limit key
 	purpose: string;
 	limit: number;
+	// the page origin allowed to send it (Studio's unless given)
+	origin?: string;
 	// takes the image, returns the final response's JSON (or an error message)
 	finish: (bytes: Uint8Array, type: ImageType) => Promise<Record<string, unknown> | string>;
 };
@@ -53,9 +55,10 @@ type Id = { s: 7; u: string; p: string; f: string };
 export async function imageTransfer(req: Request, url: URL, viewer: Viewer, opts: ImageUpload): Promise<Response> {
 	if (req.method !== "POST" && req.method !== "PUT") return failed(405, "method not allowed");
 	if (!viewer) return failed(401, "Sign in to upload.");
-	// cookies authenticate the uploader, so only Studio's own pages may use it
+	// cookies authenticate the uploader, so only the uploading pages' own origin may use it
+	const allowed = opts.origin ?? STUDIO_ORIGIN;
 	const origin = req.headers.get("origin");
-	if (origin && origin !== STUDIO_ORIGIN) return failed(403, "Uploads come from Studio.");
+	if (origin && origin !== allowed) return failed(403, "Uploads come from this site's own pages.");
 	const channel = req.headers.get("x-youtube-channelid");
 	if (channel && channel !== viewer.channelId) return failed(403, "You can only change your own channel.");
 	const command = (req.headers.get("x-goog-upload-command") ?? "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
@@ -89,7 +92,7 @@ export async function imageTransfer(req: Request, url: URL, viewer: Viewer, opts
 		if (Number.isFinite(declared) && declared > opts.limit) return tooLarge();
 		const id = encodeToken({ s: 7, u: viewer.userId, p: url.pathname, f: randomId(16) } satisfies Id);
 		await Bun.write(join(DIR, `${(decodeToken<Id>(id) as Id).f}.part`), "");
-		const at = `${STUDIO_ORIGIN}${url.pathname}?upload_id=${encodeURIComponent(id)}&upload_protocol=resumable`;
+		const at = `${allowed}${url.pathname}?upload_id=${encodeURIComponent(id)}&upload_protocol=resumable`;
 		return reply(200, "active", { "x-goog-upload-url": at, "x-goog-upload-control-url": at, "x-goog-upload-chunk-granularity": String(GRANULARITY), "x-guploader-uploadid": id });
 	}
 

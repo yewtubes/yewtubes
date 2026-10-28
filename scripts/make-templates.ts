@@ -902,11 +902,11 @@ function chrome() {
 	const inn = clean(pageVar(body("in-menus", /^001-/)).topbar);
 	delete inn.desktopTopbarRenderer.voiceSearchButton;
 	wholeToken(inn, "thumbnails", "VIEWER_AVATAR", (o) => o.thumbnails?.[0]?.url?.includes("ggpht"));
-	// Create menu: uploading is supported; live streams and posts are not
+	// Create menu: uploading and posts are supported; live streams are not
 	const create = find(inn, "multiPageMenuRenderer", (m) => m.style === "MULTI_PAGE_MENU_STYLE_TYPE_CREATION");
 	for (const sec of create.sections) {
 		const s = sec.multiPageMenuSectionRenderer;
-		if (s) s.items = s.items.filter((it: any) => menuTitle(Object.values(it)[0]) === "Upload video");
+		if (s) s.items = s.items.filter((it: any) => ["Upload video", "Create post"].includes(menuTitle(Object.values(it)[0])));
 	}
 	save("topbar/signed_in", tokenize(inn, pairs, ids));
 

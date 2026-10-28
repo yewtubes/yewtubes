@@ -179,7 +179,7 @@ export async function channelHeader(c: Channel, viewer: Viewer, vars: Vars) {
 	return { header: { pageHeaderRenderer: header }, mutations: [] as unknown[] };
 }
 
-export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer) {
+export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer, openComposer = false) {
 	// with the Home tab turned off in Studio, the channel opens on its first other tab
 	const hasPlaylists = (await channelPlaylistLockups(c, viewer)).length > 0;
 	const has = async (kind: GridKind) => (await channelVideos(c.id, viewer, 1, 0, "newest", kind)).length > 0;
@@ -194,7 +194,7 @@ export async function channelPage(c: Channel, tab: ChannelTab, viewer: Viewer) {
 	if (tab === "videos") content = { richGridRenderer: make("channel/videos_grid", { ...vars, ...sortVars(c, "newest", "videos"), ITEMS: await videoGridItems(c, viewer, 0, "newest") }) };
 	else if (tab === "shorts") content = { richGridRenderer: make("channel/shorts_grid", { ...sortVars(c, "newest", "shorts"), ITEMS: await videoGridItems(c, viewer, 0, "newest", "shorts") }) };
 	else if (tab === "playlists") content = await playlistsTab(c, viewer, vars);
-	else if (tab === "posts") content = await postsTab(c, viewer);
+	else if (tab === "posts") content = await postsTab(c, viewer, openComposer);
 	else content = await homeTab(c, viewer, vars);
 	// YouTube lists only the tabs a channel has content for
 	const show: string[] = [...(available.includes(tab) ? available : [tab, ...available]), "search"];

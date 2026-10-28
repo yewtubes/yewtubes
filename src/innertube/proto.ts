@@ -87,6 +87,17 @@ export function entityKey(id: string, type: number): string {
 	return Buffer.from(encode({ 2: id, 4: type, 5: 1 })).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "%3D");
 }
 
+// whether a channel browse params blob asks to open the post composer (the
+// Create menu's "Create post": {2: "posts", 73: {1: {1: 1}}, ...})
+export function createDialogFromParams(params: string | undefined): boolean {
+	if (!params) return false;
+	try {
+		return decode(fromBase64(params)).has(73);
+	} catch {
+		return false;
+	}
+}
+
 // the tab name in a channel browse params blob ({2: "videos", ...})
 export function channelTabFromParams(params: string | undefined): string | undefined {
 	if (!params) return undefined;

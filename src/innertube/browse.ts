@@ -19,6 +19,8 @@ import { recordMiss } from "../diagnostics";
 import { aboutPanel, type ChannelSort, type ChannelTab, channelPage, channelTab, tabParams, videoGridItems, videoGridReload } from "./channel";
 import { SETTINGS_PAGES, SETTINGS_PATHS, settingsPage } from "./settings";
 import { signInUrl } from "./vars";
+import { CREATE_POST_PARAMS } from "./post-composer";
+import { createDialogFromParams } from "./proto";
 import { getPost, postCommand, postIdFromParams, postPage, postParams, postsContinuation } from "./posts";
 
 // the browse command for a channel tab, as the tab strip's endpoints have it
@@ -93,7 +95,7 @@ export async function buildBrowse(browseId: string, params: string | undefined, 
 		const c = await getChannel({ id: browseId });
 		if (!c) return undefined;
 		const tab = channelTab(params);
-		const r = await channelPage(c, tab, viewer);
+		const r = await channelPage(c, tab, viewer, tab === "posts" && createDialogFromParams(params));
 		return { kind: "channel", title: c.title, url: r.path, command: channelCommand(c, tab), response: r.response };
 	}
 	return undefined;
@@ -168,6 +170,8 @@ export async function resolvePath(url: URL): Promise<{ browseId: string; params?
 		const c = await getChannel(m[1] ? { handle: m[1] } : { id: m[2] });
 		if (!c) return undefined;
 		const tab = m[3] === "community" ? "posts" : m[3];
+		// the Create menu's "Create post" opens the composer (the params YouTube's own link carries)
+		if (tab === "posts" && url.searchParams.get("show_create_dialog") === "1") return { browseId: c.id, params: CREATE_POST_PARAMS };
 		return { browseId: c.id, params: tab ? tabParams(tab as ChannelTab) : undefined };
 	}
 	return undefined;
